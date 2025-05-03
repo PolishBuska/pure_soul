@@ -1,0 +1,80 @@
+from typing import Any, Dict, List
+
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import insert, select, update
+
+from src.application.common.user_gateway import UserGateway
+from src.domain.artist import Artist
+from src.domain.iam.user import BaseUser, UserId
+
+from src.domain.exceptions import AlreadyExistsException
+from src.domain.types import ArtistId
+
+from .tables import UserTable, ArtistTable
+
+
+class SqlaUserGateway(UserGateway):
+    def __init__(self, uow: AsyncSession):
+        self.uow = uow
+
+    def _prepare_search_params(self, params: Dict[str, Any], model):
+        res = []
+        for k, v in params.items():
+            column = getattr(model, k, None)
+            if column is None:
+                continue
+            if isinstance(v, list):
+                res.append(column.in_(v))
+            else:
+                res.append(column == v)
+        return res
+
+    async def create_user(self, user: BaseUser) -> UserId:
+        try:
+            stmt = insert(UserTable).values(
+                username=user.username,
+                email=user.email,
+                grants=user.grants,
+                is_adult=user.is_adult,
+                subscription_id=user.subscription_id,
+                password=user.password
+            ).returning(UserTable.id)
+            flushed = await self.uow.execute(stmt)
+            user_id = flushed.scalar_one()
+            return UserId(user_id)
+        except IntegrityError:
+            raise AlreadyExistsException(f'the user: {user.username, user.email} already exists')
+
+    async def filter_artists(self, params: Dict[str, Any]) -> List[int]:
+        where_clause = self._prepare_search_params(params=params, model=ArtistTable)
+        query = select(Artist).where(*where_clause)
+        res = await self.uow.scalars(query)
+        return [m.id for m in res] if res else []
+
+    async def get_user(self, user_id: int) -> BaseUser:
+        try:
+            query = select(UserTable).where(UserTable.id == user_id)
+            res = await self.uow.scalar(query)
+            return res.to_domain()
+        except Exception as e:
+            print(f"something went wrong {str(e)}")
+
+    async def get_user_by_email(self, email: str) -> BaseUser | None:
+        query = select(UserTable).where(UserTable.email == email)
+        res = await self.uow.scalar(query)
+        if res is None:
+            return None
+        return res.to_domain()
+
+    async def create_artist(self, user: Artist) -> ArtistId:
+        ...
+
+    async def update_user_sub(self, user: BaseUser) -> None:
+        stmt = update(UserTable).where(UserTable.id == user.id).values(
+            subscription_id=user.subscription_id,
+            grants=user.grants
+        )
+        flushed = await self.uow.execute(stmt)
+        user_id = flushed.scalar_one()
+        return user_id
