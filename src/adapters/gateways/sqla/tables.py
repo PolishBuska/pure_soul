@@ -19,6 +19,7 @@ from src.domain.iam.user import BaseUser, UserId, UserName, EmailAddress
 from src.domain.playlist import Playlist
 from src.domain.song import Song
 from src.domain.genre import Genre
+from src.domain.subscription.payment_choice import Payment
 from src.domain.subscription.tiers import SubscriptionTier
 from src.domain.types import GenreId, GenreName, ArtistId, ArtistNickname, SongId, SongTitle, SongDescription, AlbumId, \
     SongCoverImage
@@ -41,7 +42,7 @@ class UserTable(Base):
     is_adult: Mapped[bool] = mapped_column(nullable=False)
     subscription_id: Mapped[int] = mapped_column(
         ForeignKey('subscriptions.id'),
-        nullable=False
+        nullable=True
     )
     password: Mapped[str] = mapped_column(nullable=False)
 
@@ -218,7 +219,7 @@ class TableSong(Base):
         back_populates="songs"
     )
 
-    playlist: Mapped["PlaylistTable"] = relationship(
+    playlists: Mapped["PlaylistTable"] = relationship(
         "PlaylistTable",
         secondary=playlist_songs_association_table,
         back_populates="songs"
@@ -273,4 +274,17 @@ class SubscriptionTable(Base):
             tier_id=self.tier_id,
             user_id=self.user_id,
             payment_id=self.payment_id,
+        )
+
+class PaymentChoices(Base):
+    __tablename__ = 'payment_choices'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(nullable=True)
+
+    def to_domain(self):
+        return Payment(
+            id=self.id,
+            name=self.name,
+            description=self.description,
         )

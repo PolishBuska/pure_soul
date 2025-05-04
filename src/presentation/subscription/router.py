@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, List, Annotated
 
 from litestar import Router, Controller, Request, post, get
 
 from src.application.add_subscription import CardSubscription, CryptoSubscription
 from src.application.common.id_provider import IdProvider
 from src.domain.subscription.model import ActiveSubscription
+from src.domain.subscription.payment_choice import Payment
 from src.presentation.interactor_factory import UserInteractorFactory
 
 
@@ -17,6 +18,19 @@ class SubscriptionController(Controller):
             interactor_factory: UserInteractorFactory
     ) -> Any:
         async with interactor_factory.get_tiers(uow=uow_factory) as interactor:
+            return await interactor()
+
+    @get('/payments')
+    async def get_payments(
+            self,
+            uow_factory: Any,
+            interactor_factory: UserInteractorFactory,
+            id_provider: IdProvider,
+            request: Request,
+    ) -> List[Payment]:
+        async with interactor_factory.get_payments_types(
+                uow=uow_factory, id_provider=id_provider(request)
+        ) as interactor:
             return await interactor()
 
     @get('')
@@ -38,7 +52,7 @@ class SubscriptionController(Controller):
             self,
             interactor_factory: UserInteractorFactory,
             uow_factory: Any,
-            data: CardSubscription | CryptoSubscription,
+            data: Annotated[CardSubscription, CryptoSubscription],
             id_provider: IdProvider,
             request: Request,
     ) -> None:

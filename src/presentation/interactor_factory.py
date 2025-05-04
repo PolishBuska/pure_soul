@@ -9,6 +9,7 @@ from src.application.check_subscription import CheckSubscription
 from src.application.common.id_provider import IdProvider
 from src.application.common.transaction_manager import TransactionManager
 from src.application.create_user import CreateUser
+from src.application.get_payment_types import GetPaymentTypes
 
 
 @runtime_checkable
@@ -58,4 +59,9 @@ class UserInteractorFactory(Protocol):
     @abstractmethod
     @asynccontextmanager
     async def check_subscription(self, id_provider: IdProvider, uow: Any) -> CheckSubscription:
+        raise NotImplementedError()
+
+    @abstractmethod
+    @asynccontextmanager
+    async def get_payments_types(self, uow, id_provider: IdProvider) -> GetPaymentTypes:
         raise NotImplementedError()

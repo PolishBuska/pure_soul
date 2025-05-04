@@ -3,6 +3,8 @@ from typing import Protocol
 from decimal import Decimal
 
 from src.domain.subscription.choices import PaymentChoice
+from src.domain.subscription.payment_choice import Payment
+
 
 class PaymentProvider(Protocol):
 
@@ -11,7 +13,7 @@ class PaymentProvider(Protocol):
         raise NotImplementedError()
 
     @abstractmethod
-    async def pay(self, amount: Decimal, payment_info: PaymentChoice) -> str:
+    async def pay(self, amount: Decimal, payment_info: Payment) -> str:
         raise NotImplementedError()
 
     @abstractmethod

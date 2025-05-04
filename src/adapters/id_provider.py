@@ -1,10 +1,11 @@
 from typing import Any
 
+import jose
 from litestar import Request
 from typing import Callable
 
 
-from jose import jwt, ExpiredSignatureError, JWTError
+from jose import jwt, ExpiredSignatureError
 from litestar.di import Provide
 
 from src.application.common.id_provider import IdProvider
@@ -26,7 +27,11 @@ class JWTIdProviderWithRequest(IdProvider):
             payload = jwt.decode(
                 token,
                 self._secret,
-                algorithms=["HS256"]
+                algorithms=["HS256"],
+                options={
+                    "verify_exp": True,
+                    'verify_iat': True,
+                }
             )
             return BaseUser(
                 id=payload["user_id"],
@@ -39,7 +44,7 @@ class JWTIdProviderWithRequest(IdProvider):
             )
         except ExpiredSignatureError:
             raise NotAuthenticatedException("Token has expired")
-        except JWTError:
+        except jose.JWTError:
             raise NotAuthenticatedException("Invalid token")
     def __call__(self, request: Provide(Request)) -> Any:
         self._request = request

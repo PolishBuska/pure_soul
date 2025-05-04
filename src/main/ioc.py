@@ -4,6 +4,7 @@ from typing import Self, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.gateways.sqla.music_gateway import SqlaMusicGateway
+from src.adapters.gateways.sqla.payment_gateway import SaPaymentGateway
 from src.adapters.gateways.sqla.subscription_gateway import SQLASubscriptionGateway
 from src.adapters.gateways.sqla.tier_gateway import SQLATierGateway
 from src.adapters.gateways.sqla.user_gateway import SqlaUserGateway
@@ -20,6 +21,7 @@ from src.application.create_artist import CreateArtist
 from src.application.create_song import CreateSong
 from src.application.create_user import CreateUser
 from src.application.get_genres import GetGenres
+from src.application.get_payment_types import GetPaymentTypes
 from src.application.get_tiers import GetTiers
 from src.application.login_user import LoginUser
 from src.domain.artist import ArtistService
@@ -125,6 +127,7 @@ class WebIoc(UserInteractorFactory):
             tiers_gateway=SQLATierGateway(uow=uow),
             subscription_gateway=SQLASubscriptionGateway(uow=uow),
             subscription_service=self.subscription_service,
+            payment_gateway=SaPaymentGateway(uow=uow),
         )
     @asynccontextmanager
     async def get_tiers(self, uow: Any) -> GetTiers:
@@ -136,6 +139,12 @@ class WebIoc(UserInteractorFactory):
         yield CheckSubscription(
             subscription_gateway=SQLASubscriptionGateway(uow=uow),
             id_provider=id_provider,
+        )
+
+    @asynccontextmanager
+    async def get_payments_types(self, uow, id_provider: IdProvider) -> GetPaymentTypes:
+        yield GetPaymentTypes(
+            payment_gateway=SaPaymentGateway(uow=uow),
         )
 
     async def __call__(self) -> Self:

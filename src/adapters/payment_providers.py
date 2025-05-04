@@ -1,18 +1,19 @@
+import hashlib
 from _decimal import Decimal
 
 from src.application.common.payment_provider import PaymentProvider
-from src.domain.subscription.choices import PaymentChoice
+from src.domain.subscription.payment_choice import Payment
 
 
 class SomeFakeAssPaymentProvider(PaymentProvider):
     def __init__(self):
         self._last_amount: Decimal|None = None
-        self._last_payment_info: PaymentChoice|None = None
+        self._last_payment_info: Payment|None = None
 
-    async def pay(self, amount: Decimal, payment_info: PaymentChoice) -> str:
+    async def pay(self, amount: Decimal, payment_info: Payment) -> str:
         self._last_amount = amount
         self._last_payment_info = payment_info
-        return "fake-payment-id"
+        return f"{hashlib.md5(payment_info.name.encode('utf-8')).hexdigest()}.{payment_info.id}"
 
     async def cancel(self) -> str:
         if self._last_amount is None or self._last_payment_info is None:

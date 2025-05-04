@@ -31,3 +31,6 @@ class UserGateway(Protocol):
     @abstractmethod
     async def update_user(self, user: BaseUser) -> None:
         raise NotImplementedError()
+    @abstractmethod
+    async def update_user_sub(self, user: BaseUser):
+        raise NotImplementedError()

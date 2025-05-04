@@ -17,6 +17,6 @@ class SQLATierGateway(TiersGateway):
         return res.to_domain()
 
     async def get_tiers(self) -> List[SubscriptionTier]:
-        query = select(TierTable).order_by(TierTable.name)
+        query = select(TierTable).order_by(TierTable.price.asc())
         res = await self.uow.scalars(query)
         return [tier.to_domain() for tier in res]

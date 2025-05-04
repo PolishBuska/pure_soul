@@ -70,11 +70,14 @@ class SqlaUserGateway(UserGateway):
     async def create_artist(self, user: Artist) -> ArtistId:
         ...
 
-    async def update_user_sub(self, user: BaseUser) -> None:
+    async def update_user_sub(self, user: BaseUser) -> int:
         stmt = update(UserTable).where(UserTable.id == user.id).values(
             subscription_id=user.subscription_id,
             grants=user.grants
-        )
+        ).returning(UserTable.id)
         flushed = await self.uow.execute(stmt)
         user_id = flushed.scalar_one()
         return user_id
+
+    async def update_user(self, user: BaseUser) -> None:
+        ...
