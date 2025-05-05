@@ -12,6 +12,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import registry
 
 from src.domain.artist import Artist
 from src.domain.iam.constants import Grants
@@ -265,6 +266,7 @@ class SubscriptionTable(Base):
     ended_at: Mapped[datetime] = mapped_column(nullable=False)
     tier_id: Mapped[int] = mapped_column(ForeignKey('tiers.id'))
     payment_id: Mapped[str] = mapped_column(nullable=True)
+    payment_method: Mapped[int] = mapped_column(ForeignKey('payment_choices.id'), nullable=True)
 
     def to_domain(self) -> ActiveSubscription:
         return ActiveSubscription(

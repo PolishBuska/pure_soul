@@ -1,6 +1,7 @@
 from typing import Any, List
 
 from litestar import Controller, Router, get, Request
+from litestar.repository import RepositoryError
 
 from src.application.common.id_provider import IdProvider
 from src.domain.genre import Genre
