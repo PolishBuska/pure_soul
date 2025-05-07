@@ -11,6 +11,7 @@ class ActiveSubscription:
     tier_id: int
     user_id: int
     payment_id: str
+    payment_method: int
 
 class SubscriptionService:
     def create_subscription(
@@ -19,6 +20,7 @@ class SubscriptionService:
             tier_id: int,
             user_id: int,
             payment_id: str,
+            payment_method: int,
     ) -> ActiveSubscription:
         starting_datetime = datetime.now()
         return ActiveSubscription(
@@ -28,4 +30,5 @@ class SubscriptionService:
             tier_id=tier_id,
             user_id=user_id,
             payment_id=payment_id,
+            payment_method=payment_method,
         )
