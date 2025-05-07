@@ -1,5 +1,5 @@
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 from .common.id_provider import IdProvider
 
@@ -61,12 +61,18 @@ class AddSubscription(Interactor[CardSubscription | CryptoSubscription, None]):
         async with self._payment_provider as payment:
             tier = await self._tiers_gateway.get_tier_by_id(subscription.tier_choice)
             payment_info = await self._payment_gateway.get_payment(subscription.payment_choice)
-            payment_id = await payment.pay(amount=tier.price, payment_info=payment_info)
+            payment_id, payment_print = await payment.pay(
+                amount=tier.price,
+                payment_info=payment_info,
+                **asdict(subscription),
+                **asdict(current_user)
+            )
             subscription = self._subscription_service.create_subscription(
                 payment_id=payment_id,
                 user_id=current_user.id,
                 ending_threshold=tier.ending_threshold,
                 tier_id=tier.id,
+                payment_method=subscription.payment_choice
             )
             current_user.grants.extend(
                 [
