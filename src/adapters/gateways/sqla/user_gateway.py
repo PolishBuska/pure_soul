@@ -11,7 +11,7 @@ from src.domain.iam.user import BaseUser, UserId
 from src.domain.exceptions import AlreadyExistsException
 from src.domain.types import ArtistId
 
-from .tables import UserTable, ArtistTable
+from .tables import UserTable, ArtistTable, GenreTable
 
 
 class SqlaUserGateway(UserGateway):
@@ -67,8 +67,21 @@ class SqlaUserGateway(UserGateway):
             return None
         return res.to_domain()
 
-    async def create_artist(self, user: Artist) -> ArtistId:
-        ...
+    async def create_artist(
+            self,
+            user: Artist
+    ) -> ArtistId:
+        genres_query = select(GenreTable).where(GenreTable.id.in_(user.genres))
+        genres_orm = await self.uow.scalars(genres_query)
+        new_artist = ArtistTable(
+            genres=list(genres_orm),
+            name=user.nickname,
+            user_id=user.user_id
+        )
+        self.uow.add(new_artist)
+        await self.uow.flush()
+        return ArtistId(new_artist.id)
+
 
     async def update_user_sub(self, user: BaseUser) -> int:
         stmt = update(UserTable).where(UserTable.id == user.id).values(

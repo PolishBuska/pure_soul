@@ -14,7 +14,6 @@ from ..domain.types import ArtistId
 class CreateArtistDTO:
     artist_name: str
     artist_description: str
-    artist_genres: List[str]
     gender: str
     age: int
     genres: List[int]

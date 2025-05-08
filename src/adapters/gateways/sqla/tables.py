@@ -191,6 +191,7 @@ class ArtistTable(Base):
             id=ArtistId(self.id),
             nickname=ArtistNickname(self.name),
             user_id=UserId(self.user_id),
+            genres=[genre.to_domain().genre_id for genre in self.genres],
         )
 
 
@@ -276,6 +277,7 @@ class SubscriptionTable(Base):
             tier_id=self.tier_id,
             user_id=self.user_id,
             payment_id=self.payment_id,
+            payment_method=self.payment_method,
         )
 
 class PaymentChoices(Base):

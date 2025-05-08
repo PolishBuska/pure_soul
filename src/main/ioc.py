@@ -70,12 +70,12 @@ class WebIoc(UserInteractorFactory):
     @asynccontextmanager
     async def create_artist(
             self,
-            transaction_manager,
+            uow,
             id_provider: IdProvider,
     ) -> CreateArtist:
         yield CreateArtist(
-            transaction_manager=transaction_manager,
-            user_gateway=SqlaUserGateway(transaction_manager),
+            transaction_manager=uow,
+            user_gateway=SqlaUserGateway(uow=uow),
             id_provider=id_provider,
             artist_service=self.art_service,
         )
