@@ -11,7 +11,6 @@ from src.application.common.transaction_manager import TransactionManager
 from src.application.common.user_gateway import UserGateway
 
 from src.domain.exceptions import NotAuthorizedException
-from src.domain.genre import Genre
 from src.domain.song import SongService
 from src.domain.types import SongTitle, SongDescription, SongCoverImage
 
