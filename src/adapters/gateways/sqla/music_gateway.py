@@ -16,8 +16,22 @@ class SqlaMusicGateway(MusicGateway):
         self.uow = uow
 
     async def add_song(self, song: Song):
-        ...
-
+        genres_query = select(GenreTable).where(GenreTable.id.in_(song.genres))
+        artists_query = select(ArtistTable).where(ArtistTable.id.in_(song.artists))
+        genres_orm = await self.uow.scalars(genres_query)
+        artists_orm = await self.uow.scalars(artists_query)
+        new_song = TableSong(
+            description=song.description,
+            genres=list(genres_orm),
+            song_file_path=song.song_file_path,
+            cover_image=song.cover_image,
+            author_id=song.author_id,
+            album_id=1,
+            artists=list(artists_orm),
+        )
+        self.uow.add(new_song)
+        await self.uow.flush()
+        return new_song.id
     async def get_genres(self):
         query = select(GenreTable)
         result = await self.uow.scalars(query)

@@ -191,7 +191,7 @@ class ArtistTable(Base):
             id=ArtistId(self.id),
             nickname=ArtistNickname(self.name),
             user_id=UserId(self.user_id),
-            genres=[genre.to_domain().genre_id for genre in self.genres],
+            genres=[genre.to_domain() for genre in self.genres],
         )
 
 
@@ -215,7 +215,7 @@ class TableSong(Base):
         back_populates="songs"
     )
 
-    artists = relationship(
+    artists: Mapped[List['ArtistTable']] = relationship(
         "ArtistTable",
         secondary=songs_artists_association_table,
         back_populates="songs"

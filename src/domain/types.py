@@ -21,3 +21,7 @@ GenreName = NewType("GenreName", str)
 GenreId = NewType("GenreId", int)
 
 PlaylistId = NewType("PlaylistId", int)
+
+AllowedFileFormats = {
+    'mp3'
+}

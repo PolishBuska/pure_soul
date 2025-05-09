@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import insert, select, update
+from sqlalchemy.orm import selectinload
 
 from src.application.common.user_gateway import UserGateway
 from src.domain.artist import Artist
@@ -91,6 +92,16 @@ class SqlaUserGateway(UserGateway):
         flushed = await self.uow.execute(stmt)
         user_id = flushed.scalar_one()
         return user_id
+
+    async def get_artist_by_user_id(self, user_id: UserId) -> Artist:
+        query = select(ArtistTable).where(ArtistTable.id == user_id)
+        res = await self.uow.scalar(query)
+        return res.to_domain()
+
+    async def find_artist_by_names(self, names: List[str]) -> List[Artist]:
+        query = select(ArtistTable).options(selectinload(ArtistTable.genres)).where(ArtistTable.name.in_(names))
+        res = await self.uow.scalars(query)
+        return [ar.to_domain() for ar in res]
 
     async def update_user(self, user: BaseUser) -> None:
         ...

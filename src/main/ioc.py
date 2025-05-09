@@ -20,6 +20,7 @@ from src.application.common.transaction_manager import TransactionManager
 from src.application.create_artist import CreateArtist
 from src.application.create_song import CreateSong
 from src.application.create_user import CreateUser
+from src.application.find_artists_by_names import FindArtistsByNames
 from src.application.get_genres import GetGenres
 from src.application.get_payment_types import GetPaymentTypes
 from src.application.get_tiers import GetTiers
@@ -83,16 +84,16 @@ class WebIoc(UserInteractorFactory):
     @asynccontextmanager
     async def create_song(
             self,
-            transaction_manager,
+            uow,
             id_provider: IdProvider,
     ) -> CreateSong:
         yield CreateSong(
             file_storage=self.file_storage,
-            transaction_manager=transaction_manager,
+            transaction_manager=uow,
             id_provider=id_provider,
             song_service=self.song_service,
-            music_gateway=SqlaMusicGateway(transaction_manager),
-            user_gateway=SqlaUserGateway(transaction_manager),
+            music_gateway=SqlaMusicGateway(uow),
+            user_gateway=SqlaUserGateway(uow),
             names_hasher=self.names_hasher,
         )
     @asynccontextmanager
@@ -145,6 +146,12 @@ class WebIoc(UserInteractorFactory):
     async def get_payments_types(self, uow, id_provider: IdProvider) -> GetPaymentTypes:
         yield GetPaymentTypes(
             payment_gateway=SaPaymentGateway(uow=uow),
+        )
+
+    @asynccontextmanager
+    async def find_artists_by_names(self, uow) -> FindArtistsByNames:
+        yield FindArtistsByNames(
+            user_gateway=SqlaUserGateway(uow=uow),
         )
 
     async def __call__(self) -> Self:

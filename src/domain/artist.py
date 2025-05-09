@@ -14,7 +14,7 @@ class Artist:
     id: Optional[ArtistId]
     user_id: UserId
     nickname: ArtistNickname
-    genres: List[int]
+    genres: List[Genre]
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
