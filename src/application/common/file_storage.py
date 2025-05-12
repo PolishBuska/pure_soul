@@ -14,11 +14,11 @@ class RootPath:
 class FileStorage(Protocol):
 
     @abstractmethod
-    async def get_all_paths(self, root: RootPath) -> List[str]:
+    def get_all_paths(self, root: RootPath) -> List[str]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def save_file(self, file_object: BytesIO, bucket_name: str, file_id) -> str:
+    def save_file(self, file_object: BytesIO, obj_key: str) -> None:
         raise NotImplementedError()
 
     @property

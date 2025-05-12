@@ -1,22 +1,27 @@
 from io import BytesIO
+from typing import List
 
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from src.application.common.file_storage import FileStorage
+from src.application.common.file_storage import FileStorage, RootPath
 
 
-class boto3FileStorage(FileStorage):
+class Boto3FileStorage(FileStorage):
     def __init__(
             self,
             s3_uri: str,
+            aws_access_key_id: str,
+            aws_secret_access_key: str,
+            bucket_name: str,
     ):
+        self.bucket_name = bucket_name
         self.s3_uri = s3_uri
         self.s3 = boto3.client(
             's3',
-            aws_access_key_id='adminuser',
-            aws_secret_access_key='adminuser',
+            aws_access_key_id=aws_secret_access_key,
+            aws_secret_access_key=aws_access_key_id,
             endpoint_url=s3_uri,
             region_name='us-east-1',
             config=Config(
@@ -24,19 +29,22 @@ class boto3FileStorage(FileStorage):
             )
         )
 
-    async def save_song(
+    def save_song(
             self,
             file_object: BytesIO,
-            bucket_name: str,
-            file_id: str,
-            author_id: str
-    ) -> str:
+            obj_key: str,
+    ) -> None:
         try:
             self.s3.upload_fileobj(
                 file_object,
-                bucket_name,
-                file_id
+                self.root_path,
+                obj_key
             )
-            return f"{self.s3_uri}/{bucket_name}/{author_id}/{file_id}"
         except ClientError as e:
             raise e
+
+    def get_all_paths(self, root: RootPath) -> List[str]:
+        return ['','']
+
+    def root_path(self) -> str:
+        return self.s3_uri

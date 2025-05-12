@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass
 from io import BytesIO
 from typing import List, Tuple
@@ -29,21 +30,23 @@ class CreateSongDto:
 class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
     def __init__(
             self,
-            file_storage: FileStorage,
+            song_file_storage: FileStorage,
             music_gateway: MusicGateway,
             transaction_manager: TransactionManager,
             id_provider: IdProvider,
             song_service: SongService,
             names_hasher: NamesHasher,
             user_gateway: UserGateway,
+            image_file_storage: FileStorage,
     ):
-        self.file_storage = file_storage
+        self.song_file_storage = song_file_storage
         self.music_gateway = music_gateway
         self.transaction_manager = transaction_manager
         self.id_provider = id_provider
         self.song_service = song_service
         self.names_hasher = names_hasher
         self.user_gateway = user_gateway
+        self.image_file_storage = image_file_storage
 
     async def __call__(self, dto: Tuple[CreateSongDto, SongFiles]) -> None:
         current_user = self.id_provider.get_current_user_id()
@@ -65,15 +68,6 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             raise NotAuthorizedException(
                 'not authorized',
             )
-        cover_image_path = (
-            f"{self.file_storage.root_path}"
-            f"/{current_user.id}/"
-            f".{self.names_hasher.hash_name(dto[1].cover_image.name)}/"
-        )
-        song_file_path = (
-            f"{self.file_storage.root_path}"
-            f"/{current_user.id}/{self.names_hasher.hash_name(dto[1].song.name)}"
-        )
         song = self.song_service.create_song(
             title=SongTitle(dto[0].name),
             genres=dto[0].genres,
@@ -88,6 +82,25 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             original_cover_image_filename=dto[1].cover_image.name,
             author_id=current_user.id
         )
-        await self.music_gateway.add_song(
+        song_id = await self.music_gateway.add_song(
             song=song,
         )
+        cover_image_path = (
+            f"/{self.image_file_storage.root_path}"
+            f"/{current_user.id}/"
+            f".{self.names_hasher.hash_name(dto[1].cover_image.name)}/{song_id}"
+        )
+        song_file_path = (
+            f"/{self.song_file_storage.root_path}/{current_user.id}/{self.names_hasher.hash_name(dto[1].song.name)}/{song_id}"
+        )
+        await asyncio.to_thread(
+            self.song_file_storage.save_file,
+            file_object=dto[1].song,
+            obj_key=song_file_path,
+        )
+        await asyncio.to_thread(
+            self.image_file_storage.save_file,
+            file_object=dto[1].cover_image,
+            obj_key=cover_image_path,
+        )
+

@@ -38,22 +38,24 @@ class WebIoc(UserInteractorFactory):
             user_service: UserService,
             password_hasher: PasswordHasher,
             art_service: ArtistService,
-            file_storage: FileStorage,
+            song_file_storage: FileStorage,
             song_service: SongService,
             names_hasher: NamesHasher,
             token_generator: TokenGenerator,
             payment_provider: PaymentProvider,
             subscription_service: SubscriptionService,
+            image_file_storage: FileStorage,
     ):
         self.user_service = user_service
         self.password_hasher = password_hasher
         self.art_service = art_service
-        self.file_storage = file_storage
+        self.file_storage = song_file_storage
         self.song_service = song_service
         self.names_hasher = names_hasher
         self.token_generator = token_generator
         self.payment_provider = payment_provider
         self.subscription_service = subscription_service
+        self.image_file_storage = image_file_storage
 
     @asynccontextmanager
     async def create_user(
@@ -88,13 +90,14 @@ class WebIoc(UserInteractorFactory):
             id_provider: IdProvider,
     ) -> CreateSong:
         yield CreateSong(
-            file_storage=self.file_storage,
+            song_file_storage=self.file_storage,
             transaction_manager=uow,
             id_provider=id_provider,
             song_service=self.song_service,
             music_gateway=SqlaMusicGateway(uow),
             user_gateway=SqlaUserGateway(uow),
             names_hasher=self.names_hasher,
+            image_file_storage=self.image_file_storage
         )
     @asynccontextmanager
     async def get_genres(
