@@ -2,7 +2,7 @@ import pytest
 import jwt
 from datetime import datetime, timedelta
 from unittest.mock import Mock
-from src.adapters.token_generator import TokenGenerator
+from src.adapters.token_generator import JoseTokenGenerator
 
 @pytest.fixture
 def mock_user():
@@ -20,7 +20,7 @@ def test_generate_tokens(mock_user):
     """Тестируем метод generate_tokens"""
 
     secret = "supersecretkey"
-    token_generator = TokenGenerator(secret)
+    token_generator = JoseTokenGenerator(secret)
 
     access_token, refresh_token = token_generator.generate_tokens(mock_user)
 
