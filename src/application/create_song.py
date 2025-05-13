@@ -68,6 +68,14 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             raise NotAuthorizedException(
                 'not authorized',
             )
+        cover_image_path = (
+            f"/{self.image_file_storage.root_path}"
+            f"/{current_user.id}/"
+            f".{self.names_hasher.hash_name(dto[1].cover_image.name)}"
+        )
+        song_file_path = (
+            f"/{self.song_file_storage.root_path}/{current_user.id}/{self.names_hasher.hash_name(dto[1].song.name)}"
+        )
         song = self.song_service.create_song(
             title=SongTitle(dto[0].name),
             genres=dto[0].genres,
@@ -85,22 +93,14 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
         song_id = await self.music_gateway.add_song(
             song=song,
         )
-        cover_image_path = (
-            f"/{self.image_file_storage.root_path}"
-            f"/{current_user.id}/"
-            f".{self.names_hasher.hash_name(dto[1].cover_image.name)}/{song_id}"
-        )
-        song_file_path = (
-            f"/{self.song_file_storage.root_path}/{current_user.id}/{self.names_hasher.hash_name(dto[1].song.name)}/{song_id}"
-        )
         await asyncio.to_thread(
             self.song_file_storage.save_file,
             file_object=dto[1].song,
-            obj_key=song_file_path,
+            obj_key=song_file_path + f"/{song_id}",
         )
         await asyncio.to_thread(
             self.image_file_storage.save_file,
             file_object=dto[1].cover_image,
-            obj_key=cover_image_path,
+            obj_key=cover_image_path + f"/{song_id}",
         )
 

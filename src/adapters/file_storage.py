@@ -29,7 +29,7 @@ class Boto3FileStorage(FileStorage):
             )
         )
 
-    def save_song(
+    def save_file(
             self,
             file_object: BytesIO,
             obj_key: str,
