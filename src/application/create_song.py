@@ -19,6 +19,8 @@ from src.domain.types import SongTitle, SongDescription, SongCoverImage
 class SongFiles:
     song: BytesIO
     cover_image: BytesIO
+    song_filename: str
+    cover_image_filename: str
 
 @dataclass
 class CreateSongDto:
@@ -56,25 +58,21 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             )
         artists = await self.user_gateway.filter_artists(
             params={
-                'name': dto[0].authors
+                'id': [int(author) for author in dto[0].authors]
             }
         )
-        is_artist = list(
-            filter(
-                lambda artist: artist.user_id == current_user.id, artists
-            )
-        ) if len(artists) > 0 else False
-        if not is_artist:
+        if not all(str(ar) for ar in artists if ar in dto[0].authors):
             raise NotAuthorizedException(
-                'not authorized',
+                'Cannot perform requested operation',
             )
+
         cover_image_path = (
             f"/{self.image_file_storage.root_path}"
             f"/{current_user.id}/"
-            f".{self.names_hasher.hash_name(dto[1].cover_image.name)}"
+            f".{self.names_hasher.hash_name(dto[1].cover_image_filename)}"
         )
         song_file_path = (
-            f"/{self.song_file_storage.root_path}/{current_user.id}/{self.names_hasher.hash_name(dto[1].song.name)}"
+            f"/{self.song_file_storage.root_path}/{current_user.id}/{self.names_hasher.hash_name(dto[1].song_filename)}"
         )
         song = self.song_service.create_song(
             title=SongTitle(dto[0].name),
@@ -86,8 +84,8 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             created_at=None,
             updated_at=None,
             song_file_path=song_file_path,
-            original_song_filename=dto[1].song.name,
-            original_cover_image_filename=dto[1].cover_image.name,
+            original_song_filename=dto[1].song_filename,
+            original_cover_image_filename=dto[1].cover_image_filename,
             author_id=current_user.id
         )
         song_id = await self.music_gateway.add_song(

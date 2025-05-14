@@ -1,8 +1,9 @@
-from dataclasses import dataclass
-from typing import Any, List, Annotated
+from contextlib import AsyncExitStack
+from io import BytesIO
+from typing import Any, List, Annotated, Set
 
-from litestar.response import File
-from pydantic import BaseModel, Field, ConfigDict
+from litestar.di import Provide
+from pydantic import BaseModel, ConfigDict
 
 from litestar import Controller, post, Router, Request
 from litestar.datastructures import UploadFile
@@ -12,6 +13,7 @@ from litestar.exceptions import HTTPException
 
 from src.application.common.id_provider import IdProvider
 from src.application.create_song import SongFiles, CreateSongDto
+from src.presentation.inmemory_file_converter import to_bytesio_async
 from src.presentation.interactor_factory import UserInteractorFactory
 
 
@@ -27,7 +29,7 @@ def validate_file_type(file: UploadFile, allowed_types: set[str]) -> UploadFile:
 class SongFormData(BaseModel):
     name: str
     authors: List[str]
-    genres: List[int]
+    genres: List[str]
     description: str
     song: UploadFile
     cover_image: UploadFile
@@ -46,9 +48,11 @@ class MusicController(Controller):
         interactor_factory: UserInteractorFactory,
         uow_factory: Any,
         data: Annotated[SongFormData, Body(media_type=RequestEncodingType.MULTI_PART)],
+        audio_formats: Set[str],
+        image_formats: Set[str],
     ) -> None:
-        song = validate_file_type(data.song, {'audio/mpeg', 'audio/mp3', 'audio/wav'})
-        cover_image = validate_file_type(data.cover_image, {'image/jpeg', 'image/png'})
+        song = validate_file_type(data.song, audio_formats)
+        cover_image = validate_file_type(data.cover_image, image_formats)
 
         create_dto = CreateSongDto(
             name=data.name,
@@ -56,11 +60,20 @@ class MusicController(Controller):
             genres=data.genres,
             description=data.description
         )
-
         async with interactor_factory.create_song(id_provider=id_provider(request), uow=uow_factory) as interactor:
-            return await interactor(
-                (create_dto, SongFiles(song=song.file, cover_image=cover_image.file))
-            )
+            async with to_bytesio_async(song.file) as song_bytesio, to_bytesio_async(cover_image.file) as cover_image_bytesio:
+                return await interactor(
+                    (
+                        create_dto,
+                        SongFiles(
+                            song=song_bytesio,
+                            cover_image=cover_image_bytesio,
+                            song_filename=song.filename,
+                            cover_image_filename=cover_image.filename,
+                        )
+                    )
+                )
+
 music_router = Router(
     route_handlers=[MusicController],
     path='/music',

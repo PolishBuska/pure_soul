@@ -58,6 +58,8 @@ def app_factory(
         s3_uri: str,
         song_bucket_name: str,
         image_bucket_name: str,
+        audio_formats,
+        image_formats,
 ) -> Litestar:
     app = Litestar(
         openapi_config=OpenAPIConfig(
@@ -109,6 +111,8 @@ def app_factory(
             )),
             "uow_factory": Provide(SqlaUOW(db_url=db_url).get_session_factory),
             "id_provider": Provide(provide_jwt_id_provider(secret)),
+            "audio_formats": Provide(audio_formats),
+            "image_formats": Provide(image_formats),
         },
         debug=True,
         exception_handlers={
@@ -135,6 +139,12 @@ async def start_server(
     await server.serve()
 
 async def main() -> None:
+    class AudioFormats:
+        def __call__(self):
+            return  {'audio/mpeg', 'audio/mp3', 'audio/wav'}
+    class ImageFormats:
+        def __call__(self):
+            return {'image/png', 'image/jpeg'}
     db_url = 'postgresql+asyncpg://admin:admin123@localhost:5432/pure_soul'
     token_secret = 'secret'
     s3_uri = 'localhost://0.0.0.0:9000'
@@ -149,6 +159,8 @@ async def main() -> None:
         s3_uri=s3_uri,
         song_bucket_name='songs',
         image_bucket_name='images',
+        audio_formats=AudioFormats(),
+        image_formats=ImageFormats(),
     )
     app.register(main_router)
     await start_server(app)
