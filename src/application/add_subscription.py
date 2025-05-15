@@ -1,9 +1,10 @@
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 from .common.id_provider import IdProvider
 
 from .common.interactor import Interactor
+from .common.payment_gateway import PaymentGateway
 from .common.payment_provider import PaymentProvider
 from .common.subscription_gateway import SubscriptionGateway
 from .common.tiers_gateway import TiersGateway
@@ -12,14 +13,13 @@ from .common.user_gateway import UserGateway
 from src.domain.iam.constants import Grants
 from src.domain.iam.user import UserService
 from src.domain.subscription.model import SubscriptionService
-from src.domain.subscription.choices import PaymentChoice
 
 
 
 @dataclass
 class Subscription:
     tier_choice: int
-    payment_choice: PaymentChoice
+    payment_choice: int
 
 @dataclass
 class CardSubscription(Subscription):
@@ -43,6 +43,7 @@ class AddSubscription(Interactor[CardSubscription | CryptoSubscription, None]):
             tiers_gateway: TiersGateway,
             subscription_gateway: SubscriptionGateway,
             subscription_service: SubscriptionService,
+            payment_gateway: PaymentGateway,
     ):
         self._user_gateway = user_gateway
         self._transaction_manager = transaction_manager
@@ -52,18 +53,26 @@ class AddSubscription(Interactor[CardSubscription | CryptoSubscription, None]):
         self._tiers_gateway = tiers_gateway
         self._subscription_gateway = subscription_gateway
         self._subscription_service = subscription_service
+        self._payment_gateway = payment_gateway
 
 
     async def __call__(self, subscription: CardSubscription | CryptoSubscription) -> None:
         current_user = self._id_provider.get_current_user_id()
         async with self._payment_provider as payment:
             tier = await self._tiers_gateway.get_tier_by_id(subscription.tier_choice)
-            payment_id = await payment.pay(amount=tier.price, payment_info=subscription.payment_choice.value)
+            payment_info = await self._payment_gateway.get_payment(subscription.payment_choice)
+            payment_id, payment_print = await payment.pay(
+                amount=tier.price,
+                payment_info=payment_info,
+                **asdict(subscription),
+                **asdict(current_user)
+            )
             subscription = self._subscription_service.create_subscription(
                 payment_id=payment_id,
                 user_id=current_user.id,
                 ending_threshold=tier.ending_threshold,
                 tier_id=tier.id,
+                payment_method=subscription.payment_choice
             )
             current_user.grants.extend(
                 [
@@ -75,5 +84,5 @@ class AddSubscription(Interactor[CardSubscription | CryptoSubscription, None]):
             )
             subscription_id = await self._subscription_gateway.save_subscription(subscription)
             current_user.subscription_id = subscription_id
-            await self._user_gateway.update_user(current_user)
+            await self._user_gateway.update_user_sub(current_user)
             await self._transaction_manager.commit()

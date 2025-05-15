@@ -5,8 +5,6 @@ from src.application.common.file_storage import FileStorage, RootPath
 
 
 class S3FileStorage(FileStorage):
-    def __init__(self, backet_name: str):
-        self.backet_name = backet_name
     async def get_all_paths(self, root: RootPath) -> List[str]:
         ...
     async def get_path(self, path: str) -> str:
@@ -17,4 +15,4 @@ class S3FileStorage(FileStorage):
         ...
 
     def root_path(self) -> str:
-        ...
+        return self.backet_name

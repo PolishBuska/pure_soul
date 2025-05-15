@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import insert, select, update
+from sqlalchemy.orm import selectinload
 
 from src.application.common.user_gateway import UserGateway
 from src.domain.artist import Artist
@@ -11,7 +12,7 @@ from src.domain.iam.user import BaseUser, UserId
 from src.domain.exceptions import AlreadyExistsException
 from src.domain.types import ArtistId
 
-from .tables import UserTable, ArtistTable
+from .tables import UserTable, ArtistTable, GenreTable
 
 
 class SqlaUserGateway(UserGateway):
@@ -20,6 +21,7 @@ class SqlaUserGateway(UserGateway):
 
     def _prepare_search_params(self, params: Dict[str, Any], model):
         res = []
+        print(params)
         for k, v in params.items():
             column = getattr(model, k, None)
             if column is None:
@@ -48,7 +50,7 @@ class SqlaUserGateway(UserGateway):
 
     async def filter_artists(self, params: Dict[str, Any]) -> List[int]:
         where_clause = self._prepare_search_params(params=params, model=ArtistTable)
-        query = select(Artist).where(*where_clause)
+        query = select(ArtistTable).where(*where_clause)
         res = await self.uow.scalars(query)
         return [m.id for m in res] if res else []
 
@@ -67,14 +69,40 @@ class SqlaUserGateway(UserGateway):
             return None
         return res.to_domain()
 
-    async def create_artist(self, user: Artist) -> ArtistId:
-        ...
+    async def create_artist(
+            self,
+            user: Artist
+    ) -> ArtistId:
+        genres_query = select(GenreTable).where(GenreTable.id.in_(user.genres))
+        genres_orm = await self.uow.scalars(genres_query)
+        new_artist = ArtistTable(
+            genres=list(genres_orm),
+            name=user.nickname,
+            user_id=user.user_id
+        )
+        self.uow.add(new_artist)
+        await self.uow.flush()
+        return ArtistId(new_artist.id)
 
-    async def update_user_sub(self, user: BaseUser) -> None:
+
+    async def update_user_sub(self, user: BaseUser) -> int:
         stmt = update(UserTable).where(UserTable.id == user.id).values(
             subscription_id=user.subscription_id,
             grants=user.grants
-        )
+        ).returning(UserTable.id)
         flushed = await self.uow.execute(stmt)
         user_id = flushed.scalar_one()
         return user_id
+
+    async def get_artist_by_user_id(self, user_id: UserId) -> Artist:
+        query = select(ArtistTable).where(ArtistTable.id == user_id)
+        res = await self.uow.scalar(query)
+        return res.to_domain()
+
+    async def find_artist_by_names(self, names: List[str]) -> List[Artist]:
+        query = select(ArtistTable).options(selectinload(ArtistTable.genres)).where(ArtistTable.name.in_(names))
+        res = await self.uow.scalars(query)
+        return [ar.to_domain() for ar in res]
+
+    async def update_user(self, user: BaseUser) -> None:
+        ...

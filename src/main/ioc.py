@@ -4,6 +4,7 @@ from typing import Self, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.gateways.sqla.music_gateway import SqlaMusicGateway
+from src.adapters.gateways.sqla.payment_gateway import SaPaymentGateway
 from src.adapters.gateways.sqla.subscription_gateway import SQLASubscriptionGateway
 from src.adapters.gateways.sqla.tier_gateway import SQLATierGateway
 from src.adapters.gateways.sqla.user_gateway import SqlaUserGateway
@@ -19,7 +20,9 @@ from src.application.common.transaction_manager import TransactionManager
 from src.application.create_artist import CreateArtist
 from src.application.create_song import CreateSong
 from src.application.create_user import CreateUser
+from src.application.find_artists_by_names import FindArtistsByNames
 from src.application.get_genres import GetGenres
+from src.application.get_payment_types import GetPaymentTypes
 from src.application.get_tiers import GetTiers
 from src.application.login_user import LoginUser
 from src.domain.artist import ArtistService
@@ -35,22 +38,24 @@ class WebIoc(UserInteractorFactory):
             user_service: UserService,
             password_hasher: PasswordHasher,
             art_service: ArtistService,
-            file_storage: FileStorage,
+            song_file_storage: FileStorage,
             song_service: SongService,
             names_hasher: NamesHasher,
             token_generator: TokenGenerator,
             payment_provider: PaymentProvider,
             subscription_service: SubscriptionService,
+            image_file_storage: FileStorage,
     ):
         self.user_service = user_service
         self.password_hasher = password_hasher
         self.art_service = art_service
-        self.file_storage = file_storage
+        self.file_storage = song_file_storage
         self.song_service = song_service
         self.names_hasher = names_hasher
         self.token_generator = token_generator
         self.payment_provider = payment_provider
         self.subscription_service = subscription_service
+        self.image_file_storage = image_file_storage
 
     @asynccontextmanager
     async def create_user(
@@ -68,12 +73,12 @@ class WebIoc(UserInteractorFactory):
     @asynccontextmanager
     async def create_artist(
             self,
-            transaction_manager,
+            uow,
             id_provider: IdProvider,
     ) -> CreateArtist:
         yield CreateArtist(
-            transaction_manager=transaction_manager,
-            user_gateway=SqlaUserGateway(transaction_manager),
+            transaction_manager=uow,
+            user_gateway=SqlaUserGateway(uow=uow),
             id_provider=id_provider,
             artist_service=self.art_service,
         )
@@ -81,17 +86,18 @@ class WebIoc(UserInteractorFactory):
     @asynccontextmanager
     async def create_song(
             self,
-            transaction_manager,
+            uow,
             id_provider: IdProvider,
     ) -> CreateSong:
         yield CreateSong(
-            file_storage=self.file_storage,
-            transaction_manager=transaction_manager,
+            song_file_storage=self.file_storage,
+            transaction_manager=uow,
             id_provider=id_provider,
             song_service=self.song_service,
-            music_gateway=SqlaMusicGateway(transaction_manager),
-            user_gateway=SqlaUserGateway(transaction_manager),
+            music_gateway=SqlaMusicGateway(uow),
+            user_gateway=SqlaUserGateway(uow),
             names_hasher=self.names_hasher,
+            image_file_storage=self.image_file_storage
         )
     @asynccontextmanager
     async def get_genres(
@@ -125,6 +131,7 @@ class WebIoc(UserInteractorFactory):
             tiers_gateway=SQLATierGateway(uow=uow),
             subscription_gateway=SQLASubscriptionGateway(uow=uow),
             subscription_service=self.subscription_service,
+            payment_gateway=SaPaymentGateway(uow=uow),
         )
     @asynccontextmanager
     async def get_tiers(self, uow: Any) -> GetTiers:
@@ -136,6 +143,18 @@ class WebIoc(UserInteractorFactory):
         yield CheckSubscription(
             subscription_gateway=SQLASubscriptionGateway(uow=uow),
             id_provider=id_provider,
+        )
+
+    @asynccontextmanager
+    async def get_payments_types(self, uow, id_provider: IdProvider) -> GetPaymentTypes:
+        yield GetPaymentTypes(
+            payment_gateway=SaPaymentGateway(uow=uow),
+        )
+
+    @asynccontextmanager
+    async def find_artists_by_names(self, uow) -> FindArtistsByNames:
+        yield FindArtistsByNames(
+            user_gateway=SqlaUserGateway(uow=uow),
         )
 
     async def __call__(self) -> Self:

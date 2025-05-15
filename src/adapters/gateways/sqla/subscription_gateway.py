@@ -29,6 +29,7 @@ class SQLASubscriptionGateway(SubscriptionGateway):
             ended_at=subscription.ended_at,
             tier_id=subscription.tier_id,
             payment_id=subscription.payment_id,
+            payment_method=subscription.payment_method
         ).returning(SubscriptionTable.id)
         op = await self._uow.execute(stmt)
         flushed_id = op.scalar_one_or_none()

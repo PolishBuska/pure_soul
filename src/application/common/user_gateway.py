@@ -25,9 +25,20 @@ class UserGateway(Protocol):
         raise NotImplementedError()
 
     @abstractmethod
+    async def find_artist_by_names(self, names: List[str]) -> List[Artist]:
+        raise NotImplementedError()
+
+    @abstractmethod
     async def filter_artists(self, params: Dict[str, Any]) -> List[Any]:
         raise NotImplementedError()
 
     @abstractmethod
+    async def get_artist_by_user_id(self, user_id: UserId) -> Artist:
+        raise NotImplementedError()
+
+    @abstractmethod
     async def update_user(self, user: BaseUser) -> None:
+        raise NotImplementedError()
+    @abstractmethod
+    async def update_user_sub(self, user: BaseUser):
         raise NotImplementedError()

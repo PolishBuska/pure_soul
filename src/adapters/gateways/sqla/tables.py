@@ -12,6 +12,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import registry
 
 from src.domain.artist import Artist
 from src.domain.iam.constants import Grants
@@ -19,6 +20,7 @@ from src.domain.iam.user import BaseUser, UserId, UserName, EmailAddress
 from src.domain.playlist import Playlist
 from src.domain.song import Song
 from src.domain.genre import Genre
+from src.domain.subscription.payment_choice import Payment
 from src.domain.subscription.tiers import SubscriptionTier
 from src.domain.types import GenreId, GenreName, ArtistId, ArtistNickname, SongId, SongTitle, SongDescription, AlbumId, \
     SongCoverImage
@@ -41,7 +43,7 @@ class UserTable(Base):
     is_adult: Mapped[bool] = mapped_column(nullable=False)
     subscription_id: Mapped[int] = mapped_column(
         ForeignKey('subscriptions.id'),
-        nullable=False
+        nullable=True
     )
     password: Mapped[str] = mapped_column(nullable=False)
 
@@ -189,6 +191,7 @@ class ArtistTable(Base):
             id=ArtistId(self.id),
             nickname=ArtistNickname(self.name),
             user_id=UserId(self.user_id),
+            genres=[genre.to_domain() for genre in self.genres],
         )
 
 
@@ -209,19 +212,22 @@ class TableSong(Base):
     genres: Mapped[List["GenreTable"]] = relationship(
         "GenreTable",
         secondary=songs_genres_association_table,
-        back_populates="songs"
+        back_populates="songs",
+        lazy='selectin'
     )
 
-    artists = relationship(
+    artists: Mapped[List['ArtistTable']] = relationship(
         "ArtistTable",
         secondary=songs_artists_association_table,
-        back_populates="songs"
+        back_populates="songs",
+        lazy='selectin'
     )
 
-    playlist: Mapped["PlaylistTable"] = relationship(
+    playlists: Mapped["PlaylistTable"] = relationship(
         "PlaylistTable",
         secondary=playlist_songs_association_table,
-        back_populates="songs"
+        back_populates="songs",
+        lazy='selectin'
     )
 
     def to_domain(self):
@@ -238,6 +244,7 @@ class TableSong(Base):
             original_cover_image_filename=self.original_cover_image_filename,
             artists=[artist for artist in self.artists],
             genres=[genre.to_domain() for genre in self.genres],
+            author_id=UserId(self.author_id),
         )
 
 class TierTable(Base):
@@ -264,6 +271,7 @@ class SubscriptionTable(Base):
     ended_at: Mapped[datetime] = mapped_column(nullable=False)
     tier_id: Mapped[int] = mapped_column(ForeignKey('tiers.id'))
     payment_id: Mapped[str] = mapped_column(nullable=True)
+    payment_method: Mapped[int] = mapped_column(ForeignKey('payment_choices.id'), nullable=True)
 
     def to_domain(self) -> ActiveSubscription:
         return ActiveSubscription(
@@ -273,4 +281,18 @@ class SubscriptionTable(Base):
             tier_id=self.tier_id,
             user_id=self.user_id,
             payment_id=self.payment_id,
+            payment_method=self.payment_method,
+        )
+
+class PaymentChoices(Base):
+    __tablename__ = 'payment_choices'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(nullable=True)
+
+    def to_domain(self):
+        return Payment(
+            id=self.id,
+            name=self.name,
+            description=self.description,
         )

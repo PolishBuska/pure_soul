@@ -28,6 +28,7 @@ class Song:
     song_file_path: str
     original_song_filename: str
     original_cover_image_filename: str
+    author_id: Optional[int]
 
 class SongService:
     def create_song(
@@ -39,10 +40,11 @@ class SongService:
             artists: List[str],
             created_at: Optional[datetime],
             updated_at: Optional[datetime],
-            genres: Optional[List[Genre]],
+            genres: Optional[List[int]],
             song_file_path: str,
             original_song_filename: Optional[str],
             original_cover_image_filename: Optional[str],
+            author_id: int
     ) -> Song:
         if len(title) > 255:
             raise DomainException(
@@ -61,4 +63,5 @@ class SongService:
             song_file_path=song_file_path,
             original_song_filename=original_song_filename,
             original_cover_image_filename=original_cover_image_filename,
+            author_id=author_id
         )

@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from src.domain.iam.user import UserId
 from .exceptions import TooManyGenresException
+from .genre import Genre
 
 from .types import ArtistId, ArtistNickname, GenreId
 from .album import Album
@@ -13,6 +14,7 @@ class Artist:
     id: Optional[ArtistId]
     user_id: UserId
     nickname: ArtistNickname
+    genres: List[Genre]
 
 
 @dataclass(frozen=True, eq=True, unsafe_hash=True)
@@ -35,4 +37,5 @@ class ArtistService:
             id=None,
             user_id=user_id,
             nickname=ArtistNickname(artist_nickname),
+            genres=genres,
         )

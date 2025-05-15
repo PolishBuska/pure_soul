@@ -1,8 +1,11 @@
 from abc import abstractmethod
-from typing import Protocol
+from typing import Protocol, NewType, Tuple
 from decimal import Decimal
 
-from src.domain.subscription.choices import PaymentChoice
+from src.domain.subscription.payment_choice import Payment
+
+PaymentPrint = NewType("PaymentPrint", str)
+PaymentId = NewType("PaymentId", str)
 
 class PaymentProvider(Protocol):
 
@@ -11,7 +14,7 @@ class PaymentProvider(Protocol):
         raise NotImplementedError()
 
     @abstractmethod
-    async def pay(self, amount: Decimal, payment_info: PaymentChoice) -> str:
+    async def pay(self, amount: Decimal, payment_info: Payment, **kwargs) -> Tuple[PaymentId, PaymentPrint]:
         raise NotImplementedError()
 
     @abstractmethod

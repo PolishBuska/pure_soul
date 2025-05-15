@@ -10,6 +10,7 @@ from .user.router import user_router
 from .artist.router import artist_router
 from .genres.router import genres_router
 from .subscription.router import subscription_router
+from .music.router import music_router
 @dataclasses.dataclass(frozen=True)
 class DebugValues:
     str_sep_by_comma: str
@@ -52,6 +53,7 @@ main_router = Router(
         user_router,
         artist_router,
         genres_router,
-        subscription_router
+        subscription_router,
+        music_router
     ],
 )
