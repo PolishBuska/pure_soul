@@ -116,7 +116,7 @@ async def start_server(
     await server.serve()
 
 async def main() -> None:
-    db_url = 'postgresql+asyncpg://admin:admin123@localhost:5432/pure_soul'
+    db_url = 'postgresql+asyncpg://admin:1324@localhost:5432/pure_soul'
     token_secret = 'secret'
 
     app = app_factory(db_url=db_url, secret=token_secret)
