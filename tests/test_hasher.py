@@ -29,7 +29,3 @@ def test_hash_names():
 
     hashed_name2 = names_hasher.hash_name(name)
     assert hashed_name != hashed_name2
-
-
-
-

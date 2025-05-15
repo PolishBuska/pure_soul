@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 from uuid import uuid4
 
@@ -13,7 +13,7 @@ class JoseTokenGenerator(TokenGenerator):
         self.algorithm = "HS256"
 
     def generate_tokens(self, user: BaseUser) -> Token:
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         access_token_payload = {
             "user_id": user.id,
