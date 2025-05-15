@@ -46,5 +46,6 @@ class Boto3FileStorage(FileStorage):
     def get_all_paths(self, root: RootPath) -> List[str]:
         return ['','']
 
+    @property
     def root_path(self) -> str:
-        return self.s3_uri
+        return self.bucket_name

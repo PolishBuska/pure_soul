@@ -4,7 +4,6 @@ import jose
 from litestar import Request
 from typing import Callable
 
-
 from jose import jwt, ExpiredSignatureError
 from litestar.di import Provide
 

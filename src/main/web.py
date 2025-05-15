@@ -147,9 +147,9 @@ async def main() -> None:
             return {'image/png', 'image/jpeg'}
     db_url = 'postgresql+asyncpg://admin:admin123@localhost:5432/pure_soul'
     token_secret = 'secret'
-    s3_uri = 'localhost://0.0.0.0:9000'
-    s3_access_key_id = 'k2DuYBPW1LyO0KZws6IR'
-    s3_secret_key = 'GfsrlCXfqLVF59DvIDPuDQBgOBgJzzxmH2nM8dPC'
+    s3_uri = 'http://127.0.0.1:9000'
+    s3_access_key_id = 'mRa7SfDQPxvAr7OX1loRaAyfHf2JX4PC9iqhBUU8'
+    s3_secret_key = 'cPXy2dJM4im3iRjApIWw'
 
     app = app_factory(
         db_url=db_url,

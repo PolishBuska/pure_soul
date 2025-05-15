@@ -212,19 +212,22 @@ class TableSong(Base):
     genres: Mapped[List["GenreTable"]] = relationship(
         "GenreTable",
         secondary=songs_genres_association_table,
-        back_populates="songs"
+        back_populates="songs",
+        lazy='selectin'
     )
 
     artists: Mapped[List['ArtistTable']] = relationship(
         "ArtistTable",
         secondary=songs_artists_association_table,
-        back_populates="songs"
+        back_populates="songs",
+        lazy='selectin'
     )
 
     playlists: Mapped["PlaylistTable"] = relationship(
         "PlaylistTable",
         secondary=playlist_songs_association_table,
-        back_populates="songs"
+        back_populates="songs",
+        lazy='selectin'
     )
 
     def to_domain(self):
@@ -241,6 +244,7 @@ class TableSong(Base):
             original_cover_image_filename=self.original_cover_image_filename,
             artists=[artist for artist in self.artists],
             genres=[genre.to_domain() for genre in self.genres],
+            author_id=UserId(self.author_id),
         )
 
 class TierTable(Base):

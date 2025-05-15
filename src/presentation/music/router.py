@@ -1,8 +1,5 @@
-from contextlib import AsyncExitStack
-from io import BytesIO
 from typing import Any, List, Annotated, Set
 
-from litestar.di import Provide
 from pydantic import BaseModel, ConfigDict
 
 from litestar import Controller, post, Router, Request
@@ -28,8 +25,8 @@ def validate_file_type(file: UploadFile, allowed_types: set[str]) -> UploadFile:
 
 class SongFormData(BaseModel):
     name: str
-    authors: List[str]
-    genres: List[str]
+    authors: str
+    genres: str
     description: str
     song: UploadFile
     cover_image: UploadFile
@@ -53,11 +50,10 @@ class MusicController(Controller):
     ) -> None:
         song = validate_file_type(data.song, audio_formats)
         cover_image = validate_file_type(data.cover_image, image_formats)
-
         create_dto = CreateSongDto(
             name=data.name,
-            authors=data.authors,
-            genres=data.genres,
+            authors=[int(el) for el in data.authors.split(',')],
+            genres=[int(el) for el in data.genres.split(',')],
             description=data.description
         )
         async with interactor_factory.create_song(id_provider=id_provider(request), uow=uow_factory) as interactor:

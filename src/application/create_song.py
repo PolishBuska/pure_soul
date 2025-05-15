@@ -14,6 +14,7 @@ from src.application.common.user_gateway import UserGateway
 from src.domain.exceptions import NotAuthorizedException
 from src.domain.song import SongService
 from src.domain.types import SongTitle, SongDescription, SongCoverImage
+import struct
 
 @dataclass
 class SongFiles:
@@ -26,7 +27,7 @@ class SongFiles:
 class CreateSongDto:
     name: str
     genres: List[int]
-    authors: List[str]
+    authors: List[int]
     description: str
 
 class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
@@ -67,16 +68,15 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             )
 
         cover_image_path = (
-            f"/{self.image_file_storage.root_path}"
             f"/{current_user.id}/"
             f".{self.names_hasher.hash_name(dto[1].cover_image_filename)}"
         )
         song_file_path = (
-            f"/{self.song_file_storage.root_path}/{current_user.id}/{self.names_hasher.hash_name(dto[1].song_filename)}"
+            f"/{current_user.id}/{self.names_hasher.hash_name(dto[1].song_filename)}"
         )
         song = self.song_service.create_song(
             title=SongTitle(dto[0].name),
-            genres=dto[0].genres,
+            genres=[int(genre) for genre in dto[0].genres],
             description=SongDescription(dto[0].description),
             album_id=None,
             artists=dto[0].authors,
@@ -102,3 +102,4 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             obj_key=cover_image_path + f"/{song_id}",
         )
 
+        await self.transaction_manager.commit()

@@ -22,14 +22,21 @@ class SqlaMusicGateway(MusicGateway):
         artists_orm = await self.uow.scalars(artists_query)
         new_song = TableSong(
             description=song.description,
-            genres=list(genres_orm),
             song_file_path=song.song_file_path,
             cover_image=song.cover_image,
             author_id=song.author_id,
             album_id=1,
-            artists=list(artists_orm),
+            title=song.title,
+            original_song_filename=song.original_song_filename,
+            original_cover_image_filename=song.original_cover_image_filename
         )
+
         self.uow.add(new_song)
+        await self.uow.flush()
+        await self.uow.refresh(new_song)
+        new_song.genres = list(genres_orm)
+        new_song.artists = list(artists_orm)
+
         await self.uow.flush()
         return new_song.id
     async def get_genres(self):
