@@ -1,10 +1,8 @@
 import pytest
-
+from jose.jwt import decode
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 from src.adapters.token_generator import JoseTokenGenerator
-
-from jose.jwt import decode
 
 @pytest.fixture
 def mock_user():
