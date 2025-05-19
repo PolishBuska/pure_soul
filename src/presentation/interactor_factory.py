@@ -75,3 +75,8 @@ class UserInteractorFactory(Protocol):
     @asynccontextmanager
     async def find_artists_by_names(self, uow):
         raise NotImplementedError()
+
+    @abstractmethod
+    @asynccontextmanager
+    async def get_song(self, uow, id_provider: IdProvider):
+        raise NotImplementedError()

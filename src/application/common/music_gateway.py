@@ -41,3 +41,10 @@ class MusicGateway(Protocol):
             artists: List[int],
     ):
         raise NotImplementedError()
+
+    @abstractmethod
+    async def get_song_by_id(
+            self,
+            song_id: int,
+    ) -> Song:
+        raise NotImplementedError()

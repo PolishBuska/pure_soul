@@ -99,7 +99,7 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
         await asyncio.to_thread(
             self.image_file_storage.save_file,
             file_object=dto[1].cover_image,
-            obj_key=cover_image_path + f"/{song_id}",
+            obj_key= f"/{song_id}/{cover_image_path}/{song_id}",
         )
 
         await self.transaction_manager.commit()

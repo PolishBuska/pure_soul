@@ -102,3 +102,14 @@ class SqlaMusicGateway(MusicGateway):
         )
         result = await self.uow.scalars(query)
         return [song.to_domain() for song in result]
+
+    async def get_song_by_id(
+            self,
+            song_id: int,
+    ) -> Song:
+        query = select(TableSong).where(TableSong.id == song_id).options(
+            selectinload(TableSong.genres),
+            selectinload(TableSong.artists),
+        )
+        result = await self.uow.scalar(query)
+        return result.to_domain()

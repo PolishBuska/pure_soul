@@ -2,7 +2,7 @@ from typing import Any, List, Annotated, Set
 
 from pydantic import BaseModel, ConfigDict
 
-from litestar import Controller, post, Router, Request
+from litestar import Controller, post, Router, Request, get
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.params import Body
@@ -10,7 +10,7 @@ from litestar.exceptions import HTTPException
 
 from src.application.common.id_provider import IdProvider
 from src.application.create_song import SongFiles, CreateSongDto
-from src.presentation.inmemory_file_converter import to_bytesio_async
+from src.presentation.inmemory_file_converter import spooled_to_bytesio
 from src.presentation.interactor_factory import UserInteractorFactory
 
 
@@ -57,7 +57,7 @@ class MusicController(Controller):
             description=data.description
         )
         async with interactor_factory.create_song(id_provider=id_provider(request), uow=uow_factory) as interactor:
-            async with to_bytesio_async(song.file) as song_bytesio, to_bytesio_async(cover_image.file) as cover_image_bytesio:
+            async with spooled_to_bytesio(song.file) as song_bytesio, spooled_to_bytesio(cover_image.file) as cover_image_bytesio:
                 return await interactor(
                     (
                         create_dto,
@@ -69,6 +69,20 @@ class MusicController(Controller):
                         )
                     )
                 )
+    @get(
+        '/{song_id:int}'
+    )
+    async def get_song(
+            self,
+            id_provider: IdProvider,
+            request: Request,
+            interactor_factory: UserInteractorFactory,
+            uow_factory: Any,
+            song_id: int,
+    ) -> None:
+        async with interactor_factory.get_song(id_provider=id_provider(request), uow=uow_factory) as interactor:
+            res = await interactor(song_id=song_id)
+            print(res)
 
 music_router = Router(
     route_handlers=[MusicController],
