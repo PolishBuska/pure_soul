@@ -107,9 +107,9 @@ class SqlaMusicGateway(MusicGateway):
             self,
             song_id: int,
     ) -> Song:
-        query = select(TableSong).where(TableSong.id == song_id).options(
+        query = select(TableSong).options(
             selectinload(TableSong.genres),
             selectinload(TableSong.artists),
-        )
+        ).where(TableSong.id == song_id)
         result = await self.uow.scalar(query)
         return result.to_domain()

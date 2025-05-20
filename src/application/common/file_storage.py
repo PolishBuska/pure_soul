@@ -26,6 +26,15 @@ class FileStorage(Protocol):
     def root_path(self) -> str:
         raise NotImplementedError()
 
+    @root_path.setter
+    @abstractmethod
+    def root_path(self, path: str) -> None:
+        raise NotImplementedError()
+
     @abstractmethod
     def get_file(self, obj_key: str) -> BytesIO:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_path(self, obj_key: str) -> str:
         raise NotImplementedError()

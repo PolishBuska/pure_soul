@@ -72,7 +72,7 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             f".{self.names_hasher.hash_name(dto[1].cover_image_filename)}"
         )
         song_file_path = (
-            f"/{current_user.id}/{self.names_hasher.hash_name(dto[1].song_filename)}"
+            f"{current_user.id}/{self.names_hasher.hash_name(dto[1].song_filename)}"
         )
         song = self.song_service.create_song(
             title=SongTitle(dto[0].name),
@@ -80,10 +80,10 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             description=SongDescription(dto[0].description),
             album_id=None,
             artists=dto[0].authors,
-            cover_image=SongCoverImage(cover_image_path),
+            cover_image=SongCoverImage(self.image_file_storage.root_path + cover_image_path),
             created_at=None,
             updated_at=None,
-            song_file_path=song_file_path,
+            song_file_path=f"{self.song_file_storage.root_path}/" + song_file_path,
             original_song_filename=dto[1].song_filename,
             original_cover_image_filename=dto[1].cover_image_filename,
             author_id=current_user.id
@@ -99,7 +99,7 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
         await asyncio.to_thread(
             self.image_file_storage.save_file,
             file_object=dto[1].cover_image,
-            obj_key= f"/{song_id}/{cover_image_path}/{song_id}",
+            obj_key= f"{cover_image_path}/{song_id}",
         )
 
         await self.transaction_manager.commit()

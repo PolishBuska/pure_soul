@@ -26,6 +26,7 @@ from src.application.get_payment_types import GetPaymentTypes
 from src.application.get_song import GetSong
 from src.application.get_tiers import GetTiers
 from src.application.login_user import LoginUser
+from src.application.download_presigned_url import DownloadPresignedUrl
 from src.domain.artist import ArtistService
 from src.domain.iam.user import UserService
 from src.domain.song import SongService
@@ -166,6 +167,12 @@ class WebIoc(UserInteractorFactory):
             image_file_storage=self.image_file_storage,
             music_gateway=SqlaMusicGateway(uow),
             transaction_manager=uow
+        )
+
+    @asynccontextmanager
+    async def get_file(self):
+        yield DownloadPresignedUrl(
+            file_storage=self.file_storage,
         )
 
     async def __call__(self) -> Self:

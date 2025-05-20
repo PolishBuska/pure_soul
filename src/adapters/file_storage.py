@@ -35,6 +35,7 @@ class Boto3FileStorage(FileStorage):
             obj_key: str,
     ) -> None:
         try:
+            print(obj_key)
             self.s3.upload_fileobj(
                 file_object,
                 self.root_path,
@@ -66,3 +67,16 @@ class Boto3FileStorage(FileStorage):
         )
         file_ob.seek(0)
         return file_ob
+
+    def get_path(self, obj_key: str) -> str:
+        no_leading_ = obj_key.lstrip("/")
+        s3_prefetch = self.s3.list_objects_v2(
+            Bucket=self.bucket_name,
+            Prefix=no_leading_
+        )
+        path = s3_prefetch['Contents'][0]['Key']
+        return path
+
+    @root_path.setter
+    def root_path(self, path: str) -> None:
+        self.bucket_name = path

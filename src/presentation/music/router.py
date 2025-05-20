@@ -1,5 +1,10 @@
-from typing import Any, List, Annotated, Set
+import io
+import json
+import uuid
+from dataclasses import asdict
+from typing import Any, List, Annotated, Set, Tuple
 
+from litestar.response.streaming import ASGIStreamingResponse, Stream
 from pydantic import BaseModel, ConfigDict
 
 from litestar import Controller, post, Router, Request, get
@@ -10,7 +15,8 @@ from litestar.exceptions import HTTPException
 
 from src.application.common.id_provider import IdProvider
 from src.application.create_song import SongFiles, CreateSongDto
-from src.presentation.inmemory_file_converter import spooled_to_bytesio
+from src.domain.song import Song
+from src.presentation.inmemory_file_converter import spooled_to_bytesio, convert_bytesio_to_file_response
 from src.presentation.interactor_factory import UserInteractorFactory
 
 
@@ -33,6 +39,23 @@ class SongFormData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class MusicController(Controller):
+    BOUND = uuid.uuid4().hex
+
+    def multipart_iter(self, parts):
+        """
+        parts = [(headers_dict, BytesIO), ...]
+        """
+        boundary = f"--{self.BOUND}\r\n"
+        end = f"--{self.BOUND}--\r\n"
+        for hdrs, buf in parts:
+            yield boundary.encode()
+            header_blob = "".join(f"{k}: {v}\r\n" for k, v in hdrs.items()) + "\r\n"
+            yield header_blob.encode()
+            buf.seek(0)
+            while chunk := buf.read(65536):
+                yield chunk
+            yield b"\r\n"
+        yield end.encode()
 
     @post(
         '',
@@ -79,10 +102,15 @@ class MusicController(Controller):
             interactor_factory: UserInteractorFactory,
             uow_factory: Any,
             song_id: int,
-    ) -> None:
+    ) -> Song:
         async with interactor_factory.get_song(id_provider=id_provider(request), uow=uow_factory) as interactor:
-            res = await interactor(song_id=song_id)
-            print(res)
+            return await interactor(song_id)
+
+    @get('/file')
+    async def get_file(self, url: str, interactor_factory: UserInteractorFactory) -> Stream:
+        async with interactor_factory.get_file() as interactor:
+            file = await interactor(url)
+            return convert_bytesio_to_file_response(file)
 
 music_router = Router(
     route_handlers=[MusicController],

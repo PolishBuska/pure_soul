@@ -25,8 +25,17 @@ class GetSong(Interactor[int, Song]):
         self.id_provider = id_provider
         self.image_file_storage = image_file_storage
 
-    async def __call__(self, song_id: int) -> Tuple[Song, BytesIO, BytesIO]:
+    async def __call__(self, song_id: int) -> Song:
         song = await self.music_gateway.get_song_by_id(song_id)
-        song_file = await asyncio.to_thread(self.song_file_storage.get_file, f"{song.song_file_path.lstrip('/')}/{song.id}")
-        cover_image_file = await asyncio.to_thread(self.image_file_storage.get_file, f"{song.id}/{song.cover_image.lstrip('/')}/{song.id}")
-        return song, song_file, cover_image_file
+        song_b, cover_b = song.song_file_path.split('/').pop(0), song.cover_image.split('/').pop(0)
+        song.song_file_path = f"{song_b}/" +  await asyncio.to_thread(
+            self.song_file_storage.get_path,
+            song.song_file_path.replace(song_b, '')
+
+        )
+        song.cover_image = f"{cover_b}/" + await asyncio.to_thread(
+            self.image_file_storage.get_path,
+        song.cover_image.replace(cover_b, '')
+
+        )
+        return song
