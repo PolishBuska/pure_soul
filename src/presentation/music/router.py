@@ -2,16 +2,18 @@ import io
 import json
 import uuid
 from dataclasses import asdict
-from typing import Any, List, Annotated, Set, Tuple
+from typing import Any, List, Annotated, Set, Tuple, Optional
 
-from litestar.response.streaming import ASGIStreamingResponse, Stream
+from litestar.response.streaming import Stream
 from pydantic import BaseModel, ConfigDict
 
 from litestar import Controller, post, Router, Request, get
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
-from litestar.params import Body
+from litestar.params import Body, Parameter
 from litestar.exceptions import HTTPException
+
+from src.application.get_feed import Feed
 
 from src.application.common.id_provider import IdProvider
 from src.application.create_song import SongFiles, CreateSongDto
@@ -105,6 +107,57 @@ class MusicController(Controller):
     ) -> Song:
         async with interactor_factory.get_song(id_provider=id_provider(request), uow=uow_factory) as interactor:
             return await interactor(song_id)
+
+    @get(
+        '/feed',
+        description='Get feed of all songs',
+    )
+    async def get_feed(
+            self,
+            interactor_factory: UserInteractorFactory,
+            uow_factory: Any,
+            id_provider: IdProvider,
+            request: Request,
+            page: int = Parameter(
+                description='The page number to start from.',
+                default=1,
+                gt=0
+            ),
+            page_size: int = Parameter(
+                le=15,
+                description='The page size to start from.',
+                default=10,
+                gt=0
+            ),
+            search: str = Parameter(
+                description='The search string to search for.',
+                min_length=0,
+                max_length=100,
+            ),
+            artists: Optional[List[int]] = Parameter(
+                description='The artists to include in the query.',
+                min_items=0,
+                max_items=100,
+            ),
+            genres: Optional[List[int]] = Parameter(
+                description='The genres to include in the query.',
+                min_items=0,
+                max_items=100,
+            )
+    ) -> List[Song]:
+        async with interactor_factory.get_feed(
+                uow=uow_factory,
+                id_provider=id_provider(request),
+        ) as interactor:
+            return await interactor(
+                Feed(
+                    page=page,
+                    page_size=page_size,
+                    search=search,
+                    artists=artists,
+                    genres=genres,
+                )
+            )
 
     @get('/file')
     async def get_file(self, url: str, interactor_factory: UserInteractorFactory) -> Stream:

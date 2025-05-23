@@ -4,5 +4,5 @@ from typing import Optional
 
 @dataclass
 class DTO:
-    page: Optional[int] = None
-    page_size: Optional[int] = None
+    page: Optional[int]
+    page_size: Optional[int]

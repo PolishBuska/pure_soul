@@ -85,3 +85,8 @@ class UserInteractorFactory(Protocol):
     @asynccontextmanager
     async def get_file(self):
         raise NotImplementedError()
+
+    @abstractmethod
+    @asynccontextmanager
+    async def get_feed(self, uow):
+        raise NotImplementedError()

@@ -21,6 +21,7 @@ from src.application.create_artist import CreateArtist
 from src.application.create_song import CreateSong
 from src.application.create_user import CreateUser
 from src.application.find_artists_by_names import FindArtistsByNames
+from src.application.get_feed import GetFeed
 from src.application.get_genres import GetGenres
 from src.application.get_payment_types import GetPaymentTypes
 from src.application.get_song import GetSong
@@ -173,6 +174,16 @@ class WebIoc(UserInteractorFactory):
     async def get_file(self):
         yield DownloadPresignedUrl(
             file_storage=self.file_storage,
+        )
+
+    @asynccontextmanager
+    async def get_feed(self, uow, id_provider: IdProvider):
+        yield GetFeed(
+            song_file_storage=self.file_storage,
+            music_gateway=SqlaMusicGateway(uow),
+            transaction_manager=uow,
+            id_provider=id_provider,
+            image_file_storage=self.image_file_storage,
         )
 
     async def __call__(self) -> Self:

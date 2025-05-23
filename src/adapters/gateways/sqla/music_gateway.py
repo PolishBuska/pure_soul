@@ -113,3 +113,27 @@ class SqlaMusicGateway(MusicGateway):
         ).where(TableSong.id == song_id)
         result = await self.uow.scalar(query)
         return result.to_domain()
+
+    async def search_songs(
+            self,
+            page: int,
+            page_size: int,
+            genres: List[int],
+            artists: List[int],
+            search: str
+    ):
+        query = (
+            select(TableSong).filter(
+                TableSong.genres.any(GenreTable.id.in_(genres) if genres else True),
+                TableSong.artists.any(ArtistTable.id.in_(artists) if artists else True),
+                TableSong.title.ilike(search),
+            ).options(
+                selectinload(TableSong.genres),
+                selectinload(TableSong.artists)
+            ).limit(page_size).offset(page * page_size).order_by(
+                TableSong.created_at.desc(),
+            )
+        )
+        print(query)
+        result = await self.uow.scalars(query)
+        return [m.to_domain() for m in result]

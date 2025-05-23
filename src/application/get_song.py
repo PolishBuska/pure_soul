@@ -1,6 +1,4 @@
 import asyncio
-from io import BytesIO
-from typing import Tuple
 
 from src.application.common.file_storage import FileStorage
 from src.application.common.id_provider import IdProvider
@@ -8,6 +6,7 @@ from src.application.common.interactor import Interactor
 from src.application.common.music_gateway import MusicGateway
 from src.application.common.transaction_manager import TransactionManager
 from src.domain.song import Song
+from .common.helpers import adapt_song_filepaths
 
 
 class GetSong(Interactor[int, Song]):
@@ -27,15 +26,8 @@ class GetSong(Interactor[int, Song]):
 
     async def __call__(self, song_id: int) -> Song:
         song = await self.music_gateway.get_song_by_id(song_id)
-        song_b, cover_b = song.song_file_path.split('/').pop(0), song.cover_image.split('/').pop(0)
-        song.song_file_path = f"{song_b}/" +  await asyncio.to_thread(
-            self.song_file_storage.get_path,
-            song.song_file_path.replace(song_b, '')
-
+        return await adapt_song_filepaths(
+            song,
+            image_file_storage=self.image_file_storage,
+            song_file_storage=self.song_file_storage
         )
-        song.cover_image = f"{cover_b}/" + await asyncio.to_thread(
-            self.image_file_storage.get_path,
-        song.cover_image.replace(cover_b, '')
-
-        )
-        return song

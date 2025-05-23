@@ -48,3 +48,13 @@ class MusicGateway(Protocol):
             song_id: int,
     ) -> Song:
         raise NotImplementedError()
+    @abstractmethod
+    async def search_songs(
+            self,
+            page: int,
+            page_size: int,
+            genres: List[int],
+            artists: List[int],
+            search: str
+    ):
+        raise NotImplementedError()
