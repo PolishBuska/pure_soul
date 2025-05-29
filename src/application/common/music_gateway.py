@@ -1,6 +1,7 @@
 from typing import Protocol, List
 from abc import abstractmethod
 
+from src.domain.album import Album
 from src.domain.genre import Genre
 from src.domain.song import Song
 
@@ -57,4 +58,16 @@ class MusicGateway(Protocol):
             artists: List[int],
             search: str
     ):
+        raise NotImplementedError()
+    @abstractmethod
+    async def create_album(self, album: Album):
+        raise NotImplementedError()
+    @abstractmethod
+    async def fetch_artists(self, artists: List[int]):
+        raise NotImplementedError()
+    @abstractmethod
+    async def fetch_genres(self, genres: List[int]):
+        raise NotImplementedError()
+    @abstractmethod
+    async def add_songs(self, songs: List[Song]) -> List[Song]:
         raise NotImplementedError()

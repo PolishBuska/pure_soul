@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from .types import (
     AlbumId,
@@ -11,9 +11,9 @@ from .song import Song
 
 @dataclass
 class Album:
-    id: AlbumId
+    id: Optional[AlbumId]
     title: AlbumTitle
     description: AlbumDescription
-    cover_picture: AlbumCoverImage
-    songs: List[Song]
+    genres: List[int]
+    songs: Optional[List[Song]]
     artists_ids: List[ArtistId]

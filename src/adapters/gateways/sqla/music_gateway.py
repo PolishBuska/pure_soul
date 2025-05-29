@@ -1,4 +1,5 @@
-from typing import List
+import asyncio
+from typing import List, Set, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,11 +16,17 @@ class SqlaMusicGateway(MusicGateway):
     def __init__(self, uow: AsyncSession):
         self.uow = uow
 
-    async def add_song(self, song: Song):
-        genres_query = select(GenreTable).where(GenreTable.id.in_(song.genres))
-        artists_query = select(ArtistTable).where(ArtistTable.id.in_(song.artists))
+    async def fetch_genres(self, genres: List[int] | Set[int]) -> List[GenreTable]:
+        genres_query = select(GenreTable).where(GenreTable.id.in_(genres))
         genres_orm = await self.uow.scalars(genres_query)
+        return list(genres_orm)
+
+    async def fetch_artists(self, artists: List[str] | Set[str]) -> List[ArtistTable]:
+        artists_query = select(ArtistTable).where(ArtistTable.id.in_(artists))
         artists_orm = await self.uow.scalars(artists_query)
+        return list(artists_orm)
+
+    async def add_song_model(self, song: Song) -> TableSong:
         new_song = TableSong(
             description=song.description,
             song_file_path=song.song_file_path,
@@ -30,13 +37,34 @@ class SqlaMusicGateway(MusicGateway):
             original_song_filename=song.original_song_filename,
             original_cover_image_filename=song.original_cover_image_filename
         )
-
         self.uow.add(new_song)
         await self.uow.flush()
         await self.uow.refresh(new_song)
-        new_song.genres = list(genres_orm)
-        new_song.artists = list(artists_orm)
+        return new_song
 
+    async def add_songs(self, songs: List[Song]) -> List[Song]:
+        all_artists_ids = {artist for song in songs for artist in song.artists}
+        all_genres_ids = {genre for song in songs for genre in song.genres}
+        extra = await asyncio.gather(*(self.fetch_artists(all_artists_ids), self.fetch_genres(all_genres_ids)))
+        artists, genres = extra[0], extra[1]
+        upload_tasks = [self.add_song_model(song) for song in songs]
+        res = await asyncio.gather(*upload_tasks)
+        return_songs = zip(res, songs)
+        artist_map = {a.id: a for a in artists}
+        genre_map = {g.id: g for g in genres}
+        for song_model, song in zip(res, songs):
+            song_model.artists = [artist_map[aid] for aid in song.artists]
+            song_model.genres = [genre_map[gid] for gid in song.genres]
+
+        await self.uow.flush()
+        return [model.to_domain() for model, _ in return_songs]
+
+    async def add_song(self, song: Song):
+        extra = await asyncio.gather(*(self.fetch_artists(song.artists), self.fetch_genres(song.genres)))
+        artists, genres = extra[0], extra[1]
+        new_song = await self.add_song_model(song)
+        new_song.genres = genres
+        new_song.artists = artists
         await self.uow.flush()
         return new_song.id
     async def get_genres(self):

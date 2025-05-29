@@ -1,8 +1,4 @@
-import io
-import json
-import uuid
-from dataclasses import asdict
-from typing import Any, List, Annotated, Set, Tuple, Optional
+from typing import Any, List, Annotated, Set, Optional
 
 from litestar.response.streaming import Stream
 from pydantic import BaseModel, ConfigDict
@@ -41,24 +37,17 @@ class SongFormData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class MusicController(Controller):
-    BOUND = uuid.uuid4().hex
 
-    def multipart_iter(self, parts):
-        """
-        parts = [(headers_dict, BytesIO), ...]
-        """
-        boundary = f"--{self.BOUND}\r\n"
-        end = f"--{self.BOUND}--\r\n"
-        for hdrs, buf in parts:
-            yield boundary.encode()
-            header_blob = "".join(f"{k}: {v}\r\n" for k, v in hdrs.items()) + "\r\n"
-            yield header_blob.encode()
-            buf.seek(0)
-            while chunk := buf.read(65536):
-                yield chunk
-            yield b"\r\n"
-        yield end.encode()
-
+    @post('/album')
+    async def create_album(self,
+        id_provider: IdProvider,
+        request: Request,
+        interactor_factory: UserInteractorFactory,
+        uow_factory: Any,
+        data: Annotated[List[SongFormData], Body(media_type=RequestEncodingType.MULTI_PART)],
+        audio_formats: Set[str],
+        image_formats: Set[str],) -> None:
+        return None
     @post(
         '',
         content_encoding=RequestEncodingType.MULTI_PART
