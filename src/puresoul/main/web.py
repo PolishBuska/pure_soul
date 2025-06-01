@@ -129,7 +129,7 @@ async def start_server(
 
     config = uvicorn.Config(
         app,
-        host="localhost",
+        host="0.0.0.0",
         port=8080,
         reload=False,
     )
