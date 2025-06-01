@@ -23,6 +23,11 @@ dependencies = [
     "pytest (>=8.3.5,<9.0.0)"
 ]
 
+[tool.poetry]
+name = "puresoul"
+packages = [
+    { include = "puresoul", from = "src"}
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

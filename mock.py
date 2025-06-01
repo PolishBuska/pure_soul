@@ -1,13 +1,9 @@
-import random
-import time
+from abc import abstractmethod
 from datetime import datetime
 from typing import Optional
 
 import math
 from asyncpg.pgproto.pgproto import timedelta
-
-from src.application.add_subscription import CardSubscription
-from src.domain.iam.constants import Grants
 
 
 def cache(ttl: Optional[int]):
@@ -45,9 +41,15 @@ def do_heavy_cpu(*args):
     return [math.acosh(ar) for ar in args]
 
 
+class Some:
+
+    @abstractmethod
+    def get_one(self):
+        raise NotImplementedError
+
+
+class Some2(Some):
+    ...
+
 if __name__ == '__main__':
-        a = CardSubscription(
-            tier_choice=Grants.CAN_ACCESS_PREMIUM_FEATURES,
-            payment_choice=Grants.CAN_DOWNLOAD_SONGS,
-        )
-        print(a.lox)
+    a = Some2()

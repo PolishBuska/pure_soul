@@ -2,7 +2,7 @@ import pytest
 
 from datetime import datetime, timedelta
 from unittest.mock import Mock
-from src.adapters.token_generator import JoseTokenGenerator
+from src.puresoul.adapters.token_generator import JoseTokenGenerator
 
 from jose.jwt import decode
 

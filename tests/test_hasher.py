@@ -1,8 +1,5 @@
-import pytest
-import bcrypt
-
-from src.adapters.password_hasher import BcryptPasswordHasher
-from src.adapters.password_hasher import BcryptNamesHasher
+from src.puresoul.adapters.password_hasher import BcryptPasswordHasher
+from src.puresoul.adapters.password_hasher import BcryptNamesHasher
 
 def test_hash_password():
     password_hasher = BcryptPasswordHasher(salt_rounds=12)
