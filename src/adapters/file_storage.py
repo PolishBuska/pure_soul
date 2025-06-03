@@ -35,10 +35,12 @@ class Boto3FileStorage(FileStorage):
             obj_key: str,
     ) -> None:
         try:
+            print(obj_key)
             self.s3.upload_fileobj(
                 file_object,
                 self.root_path,
-                obj_key
+                obj_key,
+            ExtraArgs={"ContentType": "audio/mpeg"}
             )
         except ClientError as e:
             raise e
@@ -49,3 +51,32 @@ class Boto3FileStorage(FileStorage):
     @property
     def root_path(self) -> str:
         return self.bucket_name
+
+    def get_file(self, obj_key: str) -> BytesIO:
+        no_leading_ = obj_key.lstrip("/")
+        s3_prefetch = self.s3.list_objects_v2(
+            Bucket=self.bucket_name,
+            Prefix=no_leading_
+        )
+        path = s3_prefetch['Contents'][0]['Key']
+        file_ob = BytesIO()
+        self.s3.download_fileobj(
+            self.root_path,
+            path,
+            file_ob
+        )
+        file_ob.seek(0)
+        return file_ob
+
+    def get_path(self, obj_key: str) -> str:
+        no_leading_ = obj_key.lstrip("/")
+        s3_prefetch = self.s3.list_objects_v2(
+            Bucket=self.bucket_name,
+            Prefix=no_leading_
+        )
+        path = s3_prefetch['Contents'][0]['Key']
+        return path
+
+    @root_path.setter
+    def root_path(self, path: str) -> None:
+        self.bucket_name = path

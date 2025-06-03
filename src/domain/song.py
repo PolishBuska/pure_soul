@@ -30,6 +30,23 @@ class Song:
     original_cover_image_filename: str
     author_id: Optional[int]
 
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "album_id": self.album_id,
+            "cover_image": self.cover_image,
+            "artists": [(ar.nickname, ar.id) for ar in self.artists],
+            "created_at": str(self.created_at),
+            "updated_at": str(self.updated_at),
+            "genres": [(sg.name, sg.genre_id) for sg in self.genres],
+            "song_file_path": self.song_file_path,
+            "original_song_filename": self.original_song_filename,
+            "original_cover_image_filename": self.original_cover_image_filename,
+            "author_id": self.author_id
+        }
+
 class SongService:
     def create_song(
             self,

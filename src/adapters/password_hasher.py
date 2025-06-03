@@ -1,3 +1,5 @@
+import base64
+
 import bcrypt
 
 from src.application.common.names_hasher import NamesHasher
@@ -28,5 +30,10 @@ class BcryptNamesHasher(NamesHasher):
         self.salt_rounds = salt_rounds
     def hash_name(self, name: str) -> str:
         salt = bcrypt.gensalt(rounds=self.salt_rounds)
-        hashed_name = bcrypt.hashpw(name.encode('utf-8'), salt)
-        return hashed_name.decode('utf-8')
+        bcrypt_hash = bcrypt.hashpw(name.encode(), salt)
+
+        # 2) Drop the leading `$2b$…$` metadata and keep only the 31‑byte digest
+        digest = bcrypt_hash.split(b"$")[-1]
+
+        urlsafe = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+        return urlsafe

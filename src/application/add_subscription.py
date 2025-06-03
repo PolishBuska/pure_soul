@@ -23,10 +23,10 @@ class Subscription:
 
 @dataclass
 class CardSubscription(Subscription):
-    card_number: str
-    card_holder_fullname: str
-    card_expiry: str
-    card_security_code: str
+    @property
+    def lox(self):
+        print(self.__class__.__dict__)
+        return 'lox'
 
 @dataclass
 class CryptoSubscription(Subscription):
