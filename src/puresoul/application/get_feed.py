@@ -42,10 +42,4 @@ class GetFeed(Interactor[Feed, List[Song]]):
             genres=feed.genres,
             artists=feed.artists,
         )
-        for song in songs:
-            await adapt_song_filepaths(
-                song,
-                song_file_storage=self.song_file_storage,
-                image_file_storage=self.image_file_storage,
-            )
         return songs

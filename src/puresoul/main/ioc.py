@@ -17,6 +17,7 @@ from puresoul.application.common.password_hasher import PasswordHasher
 from puresoul.application.common.payment_provider import PaymentProvider
 from puresoul.application.common.token_generator import TokenGenerator
 from puresoul.application.common.transaction_manager import TransactionManager
+from puresoul.application.create_album import CreateAlbum
 from puresoul.application.create_artist import CreateArtist
 from puresoul.application.create_song import CreateSong
 from puresoul.application.create_user import CreateUser
@@ -59,6 +60,20 @@ class WebIoc(UserInteractorFactory):
         self.payment_provider = payment_provider
         self.subscription_service = subscription_service
         self.image_file_storage = image_file_storage
+
+    @asynccontextmanager
+    async def create_album(
+            self,
+            uow: TransactionManager,
+            id_provider: IdProvider,
+    ) -> CreateAlbum:
+        yield CreateAlbum(
+            id_provider=id_provider,
+            music_gateway=SqlaMusicGateway(uow=uow),
+            user_gateway=SqlaUserGateway(uow=uow),
+            song_service=self.song_service,
+            transaction_manager=uow
+        )
 
     @asynccontextmanager
     async def create_user(

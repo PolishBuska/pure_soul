@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from puresoul.domain.album import Album
 from puresoul.domain.artist import Artist
 from puresoul.domain.iam.constants import Grants
 from puresoul.domain.iam.user import BaseUser, UserId, UserName, EmailAddress
@@ -21,8 +22,9 @@ from puresoul.domain.song import Song
 from puresoul.domain.genre import Genre
 from puresoul.domain.subscription.payment_choice import Payment
 from puresoul.domain.subscription.tiers import SubscriptionTier
-from puresoul.domain.types import GenreId, GenreName, ArtistId, ArtistNickname, SongId, SongTitle, SongDescription, AlbumId, \
-    SongCoverImage
+from puresoul.domain.types import GenreId, GenreName, ArtistId, ArtistNickname, SongId, SongTitle, SongDescription, \
+    AlbumId, \
+    SongCoverImage, AlbumDescription, AlbumTitle
 from puresoul.domain.subscription.model import ActiveSubscription
 
 metadata = MetaData()
@@ -111,6 +113,57 @@ class PlaylistTable(Base):
             author_id=self.author_id,
             songs=[song.to_domain() for song in self.songs],
             genres=[genre.to_domain() for genre in self.genres],
+        )
+albums_artists_association_table = Table(
+    "albums_artists_association_table",
+    Base.metadata,
+    Column("album_id", ForeignKey("albums.id"), primary_key=True),
+    Column("artist_id", ForeignKey("artists.id"), primary_key=True),
+)
+albums_genres_association_table = Table(
+    "albums_genres_association_table",
+    Base.metadata,
+    Column("album_id", ForeignKey("albums.id"), primary_key=True),
+    Column("genre_id", ForeignKey("genres.id"), primary_key=True),
+)
+albums_songs_association_table = Table(
+    "albums_songs_association_table",
+    Base.metadata,
+    Column("album_id", ForeignKey("albums.id"), primary_key=True),
+    Column("song_id", ForeignKey("songs.id"), primary_key=True),
+)
+
+class AlbumModel(Base):
+    __tablename__ = "albums"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    is_released: Mapped[bool] = mapped_column(nullable=False)
+    artists: Mapped[List["ArtistTable"]] = relationship(
+        "ArtistTable",
+        secondary=albums_artists_association_table,
+    )
+    genres: Mapped[List["GenreTable"]] = relationship(
+        "GenreTable",
+        secondary=albums_genres_association_table,
+    )
+    songs: Mapped[List["TableSong"]] = relationship(
+        "TableSong",
+        secondary=albums_songs_association_table,
+    )
+    def to_domain(self) -> Album:
+        return Album(
+            id=AlbumId(self.id),
+            title=AlbumTitle(self.name),
+            description=AlbumDescription(self.description),
+            genres=[g.to_domain() for g in self.genres],
+            artists=[ar.to_domain() for ar in self.artists],
+            songs=[s.to_domain() for s in self.songs] if self.songs else None,
+            is_released=self.is_released,
+            created_at=self.created_at,
+            updated_at=self.updated_at
         )
 
 songs_artists_association_table = Table(

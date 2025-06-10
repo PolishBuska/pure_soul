@@ -1,15 +1,17 @@
 import asyncio
 from typing import List, Set
 
-from sqlalchemy import select
+from sqlalchemy import select, insert, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from puresoul.application.common.music_gateway import MusicGateway
+from puresoul.application.common.dto import AlbumDTO
+from puresoul.domain.album import Album
 from puresoul.domain.playlist import Playlist
 from puresoul.domain.song import Song
 
-from .tables import GenreTable, PlaylistTable, TableSong, ArtistTable
+from .tables import GenreTable, PlaylistTable, TableSong, ArtistTable, AlbumModel
 
 
 class SqlaMusicGateway(MusicGateway):
@@ -21,7 +23,7 @@ class SqlaMusicGateway(MusicGateway):
         genres_orm = await self.uow.scalars(genres_query)
         return list(genres_orm)
 
-    async def fetch_artists(self, artists: List[str] | Set[str]) -> List[ArtistTable]:
+    async def fetch_artists(self, artists: List[int] | Set[int]) -> List[ArtistTable]:
         artists_query = select(ArtistTable).where(ArtistTable.id.in_(artists))
         artists_orm = await self.uow.scalars(artists_query)
         return list(artists_orm)
@@ -150,18 +152,51 @@ class SqlaMusicGateway(MusicGateway):
             artists: List[int],
             search: str
     ):
+        search_pattern = f"%{search}%"
+
+        filters = [or_(
+            TableSong.title.ilike(search_pattern),
+            TableSong.genres.any(GenreTable.name.ilike(search_pattern)),
+            TableSong.artists.any(ArtistTable.name.ilike(search_pattern)),
+        )]
+
+        if genres:
+            filters.append(TableSong.genres.any(GenreTable.id.in_(genres)))
+
+        if artists:
+            filters.append(TableSong.artists.any(ArtistTable.id.in_(artists)))
+
         query = (
-            select(TableSong).filter(
-                TableSong.genres.any(GenreTable.id.in_(genres) if genres else True),
-                TableSong.artists.any(ArtistTable.id.in_(artists) if artists else True),
-                TableSong.title.ilike(search),
-            ).options(
+            select(TableSong)
+            .filter(*filters)
+            .options(
                 selectinload(TableSong.genres),
                 selectinload(TableSong.artists)
-            ).limit(page_size).offset(page * page_size).order_by(
-                TableSong.created_at.desc(),
             )
+            .order_by(TableSong.created_at.desc())
+            .limit(page_size)
+            .offset((page - 1) * page_size)
         )
-        print(query)
+
         result = await self.uow.scalars(query)
         return [m.to_domain() for m in result]
+    async def create_album(self, album: AlbumDTO) -> Album:
+        meta = await asyncio.gather(
+            self.fetch_artists(
+                artists=album.artists
+            ),
+            self.fetch_genres(
+                genres=album.album_genres,
+            )
+        )
+        artists, genres = meta[0], meta[1]
+        new_album_model = AlbumModel(
+            artists=artists,
+            genres=genres,
+            name=album.album_name,
+            description=album.album_description,
+            is_released=False
+        )
+        self.uow.add(new_album_model)
+        await self.uow.flush()
+        return new_album_model.to_domain()

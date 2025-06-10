@@ -1,7 +1,8 @@
-from typing import Any, List, Annotated, Set, Optional
+from io import BytesIO
+from typing import Any, List, Annotated, Set, Optional, Tuple
 
 from litestar.response.streaming import Stream
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationError
 
 from litestar import Controller, post, Router, Request, get
 from litestar.datastructures import UploadFile
@@ -9,6 +10,7 @@ from litestar.enums import RequestEncodingType
 from litestar.params import Body, Parameter
 from litestar.exceptions import HTTPException
 
+from puresoul.application.common.dto import AlbumDTO
 from src.puresoul.application.get_feed import Feed
 
 from src.puresoul.application.common.id_provider import IdProvider
@@ -25,6 +27,25 @@ def validate_file_type(file: UploadFile, allowed_types: set[str]) -> UploadFile:
             detail=f"Unsupported file type: {file.content_type}. Allowed types: {', '.join(allowed_types)}"
         )
     return file
+
+
+class AlbumModel(BaseModel):
+    album_name: str = Field(min_length=1, max_length=100)
+    album_description: str = Field(min_length=1, max_length=350)
+    album_genres: List[int]
+    album_artists: List[int]
+
+    @field_validator("album_genres", mode='before')
+    def validate_genres(cls, v):
+        if len(v) == 0:
+            raise ValueError("Genres cannot be an empty list")
+        if len(v) > 100:
+            raise ValueError("album_genres cannot exceed 100 characters")
+        if any(isinstance(v, str) for v in v):
+            raise ValueError("album_genres should be a list of integers")
+        return v
+
+
 
 
 class SongFormData(BaseModel):
@@ -44,10 +65,17 @@ class MusicController(Controller):
         request: Request,
         interactor_factory: UserInteractorFactory,
         uow_factory: Any,
-        data: Annotated[List[SongFormData], Body(media_type=RequestEncodingType.MULTI_PART)],
-        audio_formats: Set[str],
-        image_formats: Set[str],) -> None:
-        return None
+        data: AlbumModel) -> None:
+        async with interactor_factory.create_album(uow=uow_factory, id_provider=id_provider(request)) as interactor:
+            res = await interactor(
+                AlbumDTO(
+                    album_name=data.album_name,
+                    album_description=data.album_description,
+                    album_genres=data.album_genres,
+                    artists=data.album_artists,
+                )
+            )
+            return res
     @post(
         '',
         content_encoding=RequestEncodingType.MULTI_PART
@@ -151,8 +179,20 @@ class MusicController(Controller):
     @get('/file')
     async def get_file(self, url: str, interactor_factory: UserInteractorFactory) -> Stream:
         async with interactor_factory.get_file() as interactor:
-            file = await interactor(url)
-            return convert_bytesio_to_file_response(file)
+            """
+                file: Tuple[BytesIO, str] = await interactor(url)
+                    it returns the source of the file.
+                    and the file stream.
+                    Used by convert_bytesio_to_file_response(
+                        )
+                    to create proper content headers
+            
+            """
+            file: Tuple[BytesIO, str] = await interactor(url)
+            return convert_bytesio_to_file_response(
+                file_source=file[1],
+                stream=file[0],
+            )
 
 music_router = Router(
     route_handlers=[MusicController],

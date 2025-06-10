@@ -4,6 +4,7 @@ from typing import Protocol, runtime_checkable, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from puresoul.application.create_album import CreateAlbum
 from src.puresoul.application.add_subscription import AddSubscription
 from src.puresoul.application.check_subscription import CheckSubscription
 from src.puresoul.application.common.id_provider import IdProvider
@@ -14,6 +15,15 @@ from src.puresoul.application.get_payment_types import GetPaymentTypes
 
 @runtime_checkable
 class UserInteractorFactory(Protocol):
+
+    @abstractmethod
+    @asynccontextmanager
+    async def create_album(
+            self,
+            uow: TransactionManager,
+            id_provider: IdProvider,
+    ) -> CreateAlbum:
+        raise NotImplementedError()
 
     @abstractmethod
     @asynccontextmanager

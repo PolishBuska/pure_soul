@@ -58,6 +58,7 @@ class Boto3FileStorage(FileStorage):
             Bucket=self.bucket_name,
             Prefix=no_leading_
         )
+        print(s3_prefetch)
         path = s3_prefetch['Contents'][0]['Key']
         file_ob = BytesIO()
         self.s3.download_fileobj(

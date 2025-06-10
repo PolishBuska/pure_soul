@@ -1,6 +1,7 @@
 from typing import Protocol, List
 from abc import abstractmethod
 
+from puresoul.application.common.dto import AlbumDTO
 from src.puresoul.domain.album import Album
 from src.puresoul.domain.genre import Genre
 from src.puresoul.domain.song import Song
@@ -60,7 +61,7 @@ class MusicGateway(Protocol):
     ):
         raise NotImplementedError()
     @abstractmethod
-    async def create_album(self, album: Album):
+    async def create_album(self, album: AlbumDTO) -> Album:
         raise NotImplementedError()
     @abstractmethod
     async def fetch_artists(self, artists: List[int]):

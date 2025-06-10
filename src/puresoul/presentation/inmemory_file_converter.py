@@ -33,20 +33,35 @@ async def spooled_to_bytesio(spooled_file) -> AsyncIterator[BytesIO]:
 CHUNK = 64 * 1024
 
 def bytesio_iterator(buf: BytesIO) -> Iterator[bytes]:
-    buf.seek(0)
-    while True:
-        chunk = buf.read(CHUNK)
-        if not chunk:
-            break
-        yield chunk
+    try:
+        buf.seek(0)
+        while True:
+            chunk = buf.read(CHUNK)
+            if not chunk:
+                break
+            yield chunk
+    finally:
+        buf.close()
 
-def convert_bytesio_to_file_response(stream: BytesIO) -> Stream:
+def convert_bytesio_to_file_response(stream: BytesIO, file_source: str) -> Stream:
+    mime_type = None
+    content_disposition = None
+    if file_source == "images":
+        mime_type = "image/jpeg"
+        content_disposition = "inline"
+        filename = "image.jpg"
+    elif file_source == "songs":
+        mime_type = "audio/mpeg"
+        content_disposition = 'attachment; filename="song.mp3"'
+        filename = "song.mp3"
+
     headers = {
-        "Content-Disposition": 'attachment; filename="audio.mp3"',
-        "Content-Type": "audio/mpeg",
+        "Content-Type": mime_type,
+        "Content-Disposition": content_disposition,
     }
+
     return Stream(
         bytesio_iterator(stream),
-        media_type="audio/mpeg",
+        media_type=mime_type,
         headers=headers,
     )

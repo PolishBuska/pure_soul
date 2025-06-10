@@ -6,7 +6,6 @@ from .exceptions import TooManyGenresException
 from .genre import Genre
 
 from .types import ArtistId, ArtistNickname
-from .album import Album
 
 
 @dataclass(frozen=False, eq=True, unsafe_hash=True)
@@ -15,12 +14,6 @@ class Artist:
     user_id: UserId
     nickname: ArtistNickname
     genres: List[Genre]
-
-
-@dataclass(frozen=True, eq=True, unsafe_hash=True)
-class ArtistDashboard:
-    artist_id: ArtistId
-    albums: List[Album]
 
 class ArtistService:
     def create_artist(
