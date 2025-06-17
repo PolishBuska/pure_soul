@@ -6,7 +6,6 @@ from litestar.openapi import OpenAPIConfig
 from litestar.openapi.plugins import SwaggerRenderPlugin
 from litestar.openapi.spec import Components, SecurityScheme, OAuthFlows, OAuthFlow
 from litestar.response import Response
-from litestar.security.jwt.token import Token
 
 from puresoul.adapters.file_storage import Boto3FileStorage
 from puresoul.adapters.id_provider import provide_jwt_id_provider
