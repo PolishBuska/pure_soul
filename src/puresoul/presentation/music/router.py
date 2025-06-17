@@ -4,7 +4,7 @@ from typing import Any, List, Annotated, Set, Optional, Tuple
 from litestar.response.streaming import Stream
 from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationError
 
-from litestar import Controller, post, Router, Request, get
+from litestar import Controller, post, Router, Request, get, put, patch
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.params import Body, Parameter
@@ -53,11 +53,24 @@ class SongFormData(BaseModel):
     authors: str
     genres: str
     description: str
+    album_id: Optional[int] = None
     song: UploadFile
     cover_image: UploadFile
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class MusicController(Controller):
+
+    @patch('/album/{album_id:int}')
+    async def publish_album(
+            self,
+            album_id: int,
+            request: Request,
+            interactor_factory: UserInteractorFactory,
+            uow_factory: Any,
+            id_provider: IdProvider
+    ) -> None:
+        async with interactor_factory.publish_album(uow=uow_factory, id_provider=id_provider(request)) as interactor:
+            return await interactor(album_id)
 
     @post('/album')
     async def create_album(self,
@@ -96,7 +109,8 @@ class MusicController(Controller):
             name=data.name,
             authors=[int(el) for el in data.authors.split(',')],
             genres=[int(el) for el in data.genres.split(',')],
-            description=data.description
+            description=data.description,
+            album_id=data.album_id
         )
         async with interactor_factory.create_song(id_provider=id_provider(request), uow=uow_factory) as interactor:
             async with spooled_to_bytesio(song.file) as song_bytesio, spooled_to_bytesio(cover_image.file) as cover_image_bytesio:

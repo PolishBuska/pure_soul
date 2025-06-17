@@ -8,7 +8,6 @@ from .types import (
     AlbumId,
     AlbumDescription,
     AlbumTitle,
-    AlbumCoverImage, ArtistId,
 )
 from .song import Song
 
@@ -23,3 +22,4 @@ class Album:
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
     is_released: bool
+    author_id: int

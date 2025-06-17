@@ -29,6 +29,7 @@ from puresoul.application.get_song import GetSong
 from puresoul.application.get_tiers import GetTiers
 from puresoul.application.login_user import LoginUser
 from puresoul.application.download_presigned_url import DownloadPresignedUrl
+from puresoul.application.publish_album import PublishAlbum
 from puresoul.domain.artist import ArtistService
 from puresoul.domain.iam.user import UserService
 from puresoul.domain.song import SongService
@@ -199,6 +200,18 @@ class WebIoc(UserInteractorFactory):
             transaction_manager=uow,
             id_provider=id_provider,
             image_file_storage=self.image_file_storage,
+        )
+
+    @asynccontextmanager
+    async def publish_album(
+            self,
+            uow,
+            id_provider: IdProvider,
+    ):
+        yield PublishAlbum(
+            music_gateway=SqlaMusicGateway(uow),
+            id_provider=id_provider,
+            transaction_manager=uow
         )
 
     async def __call__(self) -> Self:

@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Set
 
-from sqlalchemy import select, insert, or_
+from sqlalchemy import select, insert, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -200,3 +200,33 @@ class SqlaMusicGateway(MusicGateway):
         self.uow.add(new_album_model)
         await self.uow.flush()
         return new_album_model.to_domain()
+
+    async def get_album_by_id(
+            self,
+            album_id: int,
+    ) -> Album:
+        query = select(
+            AlbumModel
+        ).where(
+            AlbumModel.id == album_id
+        ).options(
+            selectinload(AlbumModel.artists),
+            selectinload(AlbumModel.genres),
+            selectinload(AlbumModel.songs)
+        )
+        orm_mo = await self.uow.scalar(query)
+        return orm_mo.to_domain()
+
+    async def update_album(self, album: Album) -> int:
+        stmt = update(AlbumModel.is_released).where(AlbumModel.id == album.id).values(
+            is_released=True
+        ).returning(AlbumModel.id)
+        flushed = await self.uow.execute(stmt)
+        return flushed.scalar_one()
+
+    async def get_album_author_id(
+            self,
+            album_id: int,
+    ) -> int:
+        query = select(AlbumModel.author_id).where(AlbumModel.id == album_id)
+        return await self.uow.scalar(query)

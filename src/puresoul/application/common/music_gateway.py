@@ -72,3 +72,18 @@ class MusicGateway(Protocol):
     @abstractmethod
     async def add_songs(self, songs: List[Song]) -> List[Song]:
         raise NotImplementedError()
+    @abstractmethod
+    async def get_album_by_id(
+            self,
+            album_id: int,
+    ) -> Album:
+        raise NotImplementedError()
+    @abstractmethod
+    async def get_album_author_id(
+            self,
+            album_id: int,
+    ):
+        raise NotImplementedError()
+    @abstractmethod
+    async def update_album(self, album: Album):
+        raise NotImplementedError()

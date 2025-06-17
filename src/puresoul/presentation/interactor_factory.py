@@ -100,3 +100,8 @@ class UserInteractorFactory(Protocol):
     @asynccontextmanager
     async def get_feed(self, uow):
         raise NotImplementedError()
+
+    @abstractmethod
+    @asynccontextmanager
+    async def publish_album(self, uow, id_provider: IdProvider):
+        raise NotImplementedError()

@@ -18,3 +18,11 @@ class NotAuthorizedException(DomainException):
 class NotAuthenticatedException(DomainException):
     def __init__(self, message: str):
         super().__init__(message)
+
+class TooFewItemsException(DomainException):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class AlreadyPublic(DomainException):
+    def __init__(self, message: str):
+        super().__init__(message)

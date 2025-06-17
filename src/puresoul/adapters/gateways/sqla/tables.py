@@ -141,6 +141,7 @@ class AlbumModel(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
     is_released: Mapped[bool] = mapped_column(nullable=False)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     artists: Mapped[List["ArtistTable"]] = relationship(
         "ArtistTable",
         secondary=albums_artists_association_table,
@@ -163,7 +164,8 @@ class AlbumModel(Base):
             songs=[s.to_domain() for s in self.songs] if self.songs else None,
             is_released=self.is_released,
             created_at=self.created_at,
-            updated_at=self.updated_at
+            updated_at=self.updated_at,
+            author_id=self.author_id,
         )
 
 songs_artists_association_table = Table(
