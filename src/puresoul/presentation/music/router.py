@@ -2,9 +2,9 @@ from io import BytesIO
 from typing import Any, List, Annotated, Set, Optional, Tuple
 
 from litestar.response.streaming import Stream
-from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from litestar import Controller, post, Router, Request, get, put, patch
+from litestar import Controller, post, Router, Request, get, patch
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.params import Body, Parameter
