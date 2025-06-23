@@ -1,14 +1,14 @@
-from pathlib import Path
 from typing import Annotated, List, Callable, Optional, FrozenSet
 
-from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException, Query, Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pydantic import field_serializer
 
 from puresoul.application.common.id_provider import IdProvider
 from puresoul.application.common.transaction_manager import TransactionManager
 from puresoul.application.create_song import CreateSongDto, SongFiles
+from puresoul.application.get_feed import Feed
 from puresoul.domain.genre import Genre
+from puresoul.domain.song import Song
 from puresoul.presentation.inmemory_file_converter import spooled_to_bytesio
 from puresoul.presentation.interactor_factory import MainInteractorFactory
 
@@ -21,6 +21,17 @@ def create_music_handler(
     api_router = APIRouter(
         prefix="/ams",
     )
+
+    class SongSearchQuery(BaseModel):
+        page: int = Field(default=1, gt=0, lt=100000000000)
+        page_size: int = Field(default=15, gt=0, le=15)
+        search: str = Field(
+            min_length=1,
+            max_length=100,
+            pattern=r'^[a-zA-Z]+$'
+        )
+        artists: Optional[List[int]] = Field(None, min_length=1, max_length=100)
+        genres: Optional[List[int]] = Field(None, min_length=1, max_length=100)
 
     class SongFormData(BaseModel):
         name: str
@@ -90,6 +101,35 @@ def create_music_handler(
                     )
                 )
 
+    async def get_song(
+            id_provider: Annotated[IdProvider, Depends(token_handler)],
+            interactor_factory: Annotated[MainInteractorFactory, Depends()],
+            uow_factory: Annotated[TransactionManager, Depends()],
+            song_id: int = Path(),
+    ) -> Song:
+        async with interactor_factory.get_song(id_provider=id_provider, uow=uow_factory) as interactor:
+            return await interactor(song_id)
+
+
+    async def search_songs(
+            interactor_factory: Annotated[MainInteractorFactory, Depends()],
+            uow_factory: Annotated[TransactionManager, Depends()],
+            id_provider: Annotated[IdProvider, Depends(token_handler)],
+            params: SongSearchQuery = Query()
+    ) -> List[Song]:
+        async with interactor_factory.get_feed(
+                uow=uow_factory,
+                id_provider=id_provider,
+        ) as interactor:
+            return await interactor(
+                Feed(
+                    page=params.page,
+                    page_size=params.page_size,
+                    search=params.search,
+                    artists=params.artists,
+                    genres=params.genres,
+                )
+            )
 
     api_router.add_api_route(
         "/genres",
@@ -100,5 +140,15 @@ def create_music_handler(
         "/songs",
         endpoint=create_song,
         methods=["POST"],
+    )
+    api_router.add_api_route(
+        '/songs/{song_id}',
+        endpoint=get_song,
+        methods=["GET"],
+    )
+    api_router.add_api_route(
+        "/songs",
+        endpoint=search_songs,
+        methods=["GET"],
     )
     return api_router

@@ -159,6 +159,8 @@ class SqlaMusicGateway(MusicGateway):
             TableSong.genres.any(GenreTable.name.ilike(search_pattern)),
             TableSong.artists.any(ArtistTable.name.ilike(search_pattern)),
         )]
+        validated_page = max(1, min(page, 1_000_0))
+        offset = (validated_page - 1) * page_size
 
         if genres:
             filters.append(TableSong.genres.any(GenreTable.id.in_(genres)))
@@ -175,7 +177,7 @@ class SqlaMusicGateway(MusicGateway):
             )
             .order_by(TableSong.created_at.desc())
             .limit(page_size)
-            .offset((page - 1) * page_size)
+            .offset(offset)
         )
 
         result = await self.uow.scalars(query)
