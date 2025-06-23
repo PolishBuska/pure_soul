@@ -17,16 +17,7 @@ from src.puresoul.application.common.id_provider import IdProvider
 from src.puresoul.application.create_song import SongFiles, CreateSongDto
 from src.puresoul.domain.song import Song
 from src.puresoul.presentation.inmemory_file_converter import spooled_to_bytesio, convert_bytesio_to_file_response
-from src.puresoul.presentation.interactor_factory import UserInteractorFactory
-
-
-def validate_file_type(file: UploadFile, allowed_types: set[str]) -> UploadFile:
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=415,
-            detail=f"Unsupported file type: {file.content_type}. Allowed types: {', '.join(allowed_types)}"
-        )
-    return file
+from src.puresoul.presentation.interactor_factory import MainInteractorFactory
 
 
 class AlbumModel(BaseModel):
@@ -65,7 +56,7 @@ class MusicController(Controller):
             self,
             album_id: int,
             request: Request,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             uow_factory: Any,
             id_provider: IdProvider
     ) -> None:
@@ -74,11 +65,11 @@ class MusicController(Controller):
 
     @post('/album')
     async def create_album(self,
-        id_provider: IdProvider,
-        request: Request,
-        interactor_factory: UserInteractorFactory,
-        uow_factory: Any,
-        data: AlbumModel) -> None:
+                           id_provider: IdProvider,
+                           request: Request,
+                           interactor_factory: MainInteractorFactory,
+                           uow_factory: Any,
+                           data: AlbumModel) -> None:
         async with interactor_factory.create_album(uow=uow_factory, id_provider=id_provider(request)) as interactor:
             res = await interactor(
                 AlbumDTO(
@@ -97,7 +88,7 @@ class MusicController(Controller):
         self,
         id_provider: IdProvider,
         request: Request,
-        interactor_factory: UserInteractorFactory,
+        interactor_factory: MainInteractorFactory,
         uow_factory: Any,
         data: Annotated[SongFormData, Body(media_type=RequestEncodingType.MULTI_PART)],
         audio_formats: Set[str],
@@ -132,7 +123,7 @@ class MusicController(Controller):
             self,
             id_provider: IdProvider,
             request: Request,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             uow_factory: Any,
             song_id: int,
     ) -> Song:
@@ -145,7 +136,7 @@ class MusicController(Controller):
     )
     async def get_feed(
             self,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             uow_factory: Any,
             id_provider: IdProvider,
             request: Request,
@@ -191,7 +182,7 @@ class MusicController(Controller):
             )
 
     @get('/file')
-    async def get_file(self, url: str, interactor_factory: UserInteractorFactory) -> Stream:
+    async def get_file(self, url: str, interactor_factory: MainInteractorFactory) -> Stream:
         async with interactor_factory.get_file() as interactor:
             """
                 file: Tuple[BytesIO, str] = await interactor(url)

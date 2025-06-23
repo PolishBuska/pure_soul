@@ -3,7 +3,7 @@ from io import BytesIO
 from typing import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 
-from litestar.response import Stream
+from fastapi.responses import StreamingResponse
 
 
 @asynccontextmanager
@@ -43,7 +43,7 @@ def bytesio_iterator(buf: BytesIO) -> Iterator[bytes]:
     finally:
         buf.close()
 
-def convert_bytesio_to_file_response(stream: BytesIO, file_source: str) -> Stream:
+def convert_bytesio_to_file_response(stream: BytesIO, file_source: str) -> StreamingResponse:
     mime_type = None
     content_disposition = None
     if file_source == "images":
@@ -60,7 +60,7 @@ def convert_bytesio_to_file_response(stream: BytesIO, file_source: str) -> Strea
         "Content-Disposition": content_disposition,
     }
 
-    return Stream(
+    return StreamingResponse(
         bytesio_iterator(stream),
         media_type=mime_type,
         headers=headers,

@@ -4,7 +4,7 @@ from litestar import Controller, Router, get, Request
 
 from src.puresoul.application.common.id_provider import IdProvider
 from src.puresoul.domain.genre import Genre
-from src.puresoul.presentation.interactor_factory import UserInteractorFactory
+from src.puresoul.presentation.interactor_factory import MainInteractorFactory
 
 
 class GenresController(Controller):
@@ -12,11 +12,11 @@ class GenresController(Controller):
 
     @get('')
     async def list_genres(self,
-            request: Request,
-            interactor_factory: UserInteractorFactory,
-            uow_factory: Any,
-            id_provider: IdProvider,
-    ) -> List[Genre]:
+                          request: Request,
+                          interactor_factory: MainInteractorFactory,
+                          uow_factory: Any,
+                          id_provider: IdProvider,
+                          ) -> List[Genre]:
         async with interactor_factory.get_genres(
             uow=uow_factory,
             id_provider=id_provider(request=request),

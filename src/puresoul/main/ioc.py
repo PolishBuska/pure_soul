@@ -34,10 +34,10 @@ from puresoul.domain.artist import ArtistService
 from puresoul.domain.iam.user import UserService
 from puresoul.domain.song import SongService
 from puresoul.domain.subscription.model import SubscriptionService
-from puresoul.presentation.interactor_factory import UserInteractorFactory
+from puresoul.presentation.interactor_factory import MainInteractorFactory
 
 
-class WebIoc(UserInteractorFactory):
+class WebIoc(MainInteractorFactory):
     def __init__(
             self,
             user_service: UserService,

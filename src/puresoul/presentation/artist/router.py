@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from src.puresoul.application.common.id_provider import IdProvider
 from src.puresoul.application.create_artist import CreateArtistDTO
-from src.puresoul.presentation.interactor_factory import UserInteractorFactory
+from src.puresoul.presentation.interactor_factory import MainInteractorFactory
 
 
 class ArtistNameDTO(BaseModel):
@@ -17,7 +17,7 @@ class ArtistController(Controller):
     async def create_artist(
             self,
             data: CreateArtistDTO,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             uow_factory: Any,
             id_provider: IdProvider,
             request: Request,
@@ -30,7 +30,7 @@ class ArtistController(Controller):
     async def get_artists_by_names(
             self,
             names: List[str],
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             uow_factory: Any,
     ) -> None:
         async with interactor_factory.find_artists_by_names(uow=uow_factory) as interactor:

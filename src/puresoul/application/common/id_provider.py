@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from abc import abstractmethod
-from typing import Protocol, Any, runtime_checkable
+from abc import abstractmethod, ABC
+from typing import Protocol, Any
 
 from src.puresoul.domain.iam.user import BaseUser
 
 
-@runtime_checkable
-class IdProvider(Protocol):
+class IdProvider(ABC):
 
     @abstractmethod
     def get_current_user_id(self) -> BaseUser:

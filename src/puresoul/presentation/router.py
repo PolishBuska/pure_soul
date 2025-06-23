@@ -2,10 +2,6 @@ import dataclasses
 import random
 from typing import Dict, Any, Annotated
 
-from litestar import Router, get, post
-from litestar.params import Body
-from litestar.response import Response
-
 from .user.router import user_router
 from .artist.router import artist_router
 from .genres.router import genres_router

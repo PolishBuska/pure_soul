@@ -1,10 +1,6 @@
-from abc import abstractmethod, ABC
-from typing import Protocol, runtime_checkable
+from abc import ABC
 
-@runtime_checkable
-class TransactionManager(Protocol):
-    def __init__(self, uow) -> None:
-        self.uow = uow
+class TransactionManager(ABC):
     async def commit(self) -> None:
         raise NotImplementedError
 

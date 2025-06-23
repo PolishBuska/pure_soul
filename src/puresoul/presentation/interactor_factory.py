@@ -1,6 +1,6 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from contextlib import asynccontextmanager
-from typing import Protocol, runtime_checkable, Any
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,8 +13,7 @@ from src.puresoul.application.create_user import CreateUser
 from src.puresoul.application.get_payment_types import GetPaymentTypes
 
 
-@runtime_checkable
-class UserInteractorFactory(Protocol):
+class MainInteractorFactory(ABC):
 
     @abstractmethod
     @asynccontextmanager

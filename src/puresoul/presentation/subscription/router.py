@@ -6,7 +6,7 @@ from src.puresoul.application.add_subscription import CardSubscription, CryptoSu
 from src.puresoul.application.common.id_provider import IdProvider
 from src.puresoul.domain.subscription.model import ActiveSubscription
 from src.puresoul.domain.subscription.payment_choice import Payment
-from src.puresoul.presentation.interactor_factory import UserInteractorFactory
+from src.puresoul.presentation.interactor_factory import MainInteractorFactory
 
 
 class SubscriptionController(Controller):
@@ -15,7 +15,7 @@ class SubscriptionController(Controller):
     async def get_tiers(
             self,
             uow_factory: Any,
-            interactor_factory: UserInteractorFactory
+            interactor_factory: MainInteractorFactory
     ) -> Any:
         async with interactor_factory.get_tiers(uow=uow_factory) as interactor:
             return await interactor()
@@ -24,7 +24,7 @@ class SubscriptionController(Controller):
     async def get_payments(
             self,
             uow_factory: Any,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             id_provider: IdProvider,
             request: Request,
     ) -> List[Payment]:
@@ -37,7 +37,7 @@ class SubscriptionController(Controller):
     async def check_subscription(
             self,
             uow_factory: Any,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             id_provider: IdProvider,
             request: Request,
     ) -> ActiveSubscription:
@@ -50,7 +50,7 @@ class SubscriptionController(Controller):
     @post('')
     async def add_subscription(
             self,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             uow_factory: Any,
             data: Annotated[CardSubscription, CryptoSubscription],
             id_provider: IdProvider,

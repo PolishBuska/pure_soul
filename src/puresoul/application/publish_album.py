@@ -1,8 +1,3 @@
-from os import device_encoding
-
-from alembic.env import run_async_migrations
-from litestar.events import listener
-
 from .common.id_provider import IdProvider
 from .common.interactor import Interactor
 from .common.music_gateway import MusicGateway

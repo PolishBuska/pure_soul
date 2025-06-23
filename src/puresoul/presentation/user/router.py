@@ -1,13 +1,9 @@
 from typing import Any, Dict
 
-from litestar import Controller, Router, post
-from litestar.dto import DataclassDTO
-from litestar.params import Body
-
 from src.puresoul.application.create_user import CreateUserDTO
 from src.puresoul.application.login_user import LoginUserDTO
 
-from src.puresoul.presentation.interactor_factory import UserInteractorFactory
+from src.puresoul.presentation.interactor_factory import MainInteractorFactory
 
 
 class UserController(Controller):
@@ -18,7 +14,7 @@ class UserController(Controller):
     async def create_user(
             self,
             data: CreateUserDTO,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             uow_factory: Any,
     ) -> int:
         async with interactor_factory.create_user(
@@ -29,7 +25,7 @@ class UserController(Controller):
     @post('/login', openapi={"security": []})
     async def login(
             self,
-            interactor_factory: UserInteractorFactory,
+            interactor_factory: MainInteractorFactory,
             uow_factory: Any,
             data: LoginUserDTO = Body(media_type="application/x-www-form-urlencoded"),
     ) -> Dict:
