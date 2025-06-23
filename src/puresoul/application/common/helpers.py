@@ -52,14 +52,12 @@ async def artists_exist(
         user_gateway: UserGateway,
         artists: List[int],
 ) -> bool:
-    artists = await user_gateway.filter_artists(
+    persisted_artists = await user_gateway.filter_artists(
         params={
             'id': [int(author) for author in artists]
         }
     )
-    if not all(str(ar) for ar in artists if ar in artists):
-        return False
-    return True
+    return all(artist_id in persisted_artists for artist_id in artists)
 
 def get_song_full_paths(
         hasher: NamesHasher,

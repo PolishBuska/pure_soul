@@ -62,7 +62,7 @@ class CreateSong(Interactor[Tuple[CreateSongDto, SongFiles], None]):
             raise NotAuthorizedException(
                 "cannot access premium features",
             )
-        if not artists_exist(
+        if not await artists_exist(
             user_gateway=self.user_gateway,
             artists=dto[0].authors,
         ):

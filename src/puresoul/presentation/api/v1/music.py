@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated, List, Callable, Optional, FrozenSet
 
 from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic import field_serializer
 
 from puresoul.application.common.id_provider import IdProvider
@@ -11,7 +11,6 @@ from puresoul.application.create_song import CreateSongDto, SongFiles
 from puresoul.domain.genre import Genre
 from puresoul.presentation.inmemory_file_converter import spooled_to_bytesio
 from puresoul.presentation.interactor_factory import MainInteractorFactory
-
 
 
 def create_music_handler(
@@ -26,12 +25,23 @@ def create_music_handler(
     class SongFormData(BaseModel):
         name: str
         authors: List[int]
-        genres: List[int]
+        genres: List[int] = Field()
         description: str
-        album_id: Optional[int] = 0
+        album_id: Optional[int] = Field(
+            None,
+            gt=0,
+            description='optional album id, provided when creating a song for an album'
+        )
         song: UploadFile
         cover_image: UploadFile
         model_config = ConfigDict(arbitrary_types_allowed=True)
+
+        @field_validator(
+            'genres', 'authors',
+            mode='before'
+        )
+        def fix_list(cls, seq: list) -> List[int]:
+            return [int(v) for v in seq[0].split(',')]
 
 
     def validate_file_type(file: UploadFile, allowed_types: FrozenSet[str]) -> UploadFile:

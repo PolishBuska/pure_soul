@@ -1,13 +1,13 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, Annotated, Callable
+from typing import Annotated, Callable
 
 import uvicorn
 from fastapi import FastAPI, Depends
 from fastapi.security import OAuth2PasswordBearer
 from starlette.requests import Request
+from starlette.responses import FileResponse
 from uvicorn import Server
-
 
 from puresoul.adapters.file_storage import Boto3FileStorage
 from puresoul.adapters.gateways.sqla.uow import SqlaUOW
@@ -18,12 +18,16 @@ from puresoul.adapters.token_generator import JoseTokenGenerator
 from puresoul.application.common.id_provider import IdProvider
 from puresoul.application.common.transaction_manager import TransactionManager
 from puresoul.domain.artist import ArtistService
+from puresoul.domain.exceptions import (
+    DomainException
+)
 from puresoul.domain.iam.user import UserService
 from puresoul.domain.song import SongService
 from puresoul.domain.subscription.model import SubscriptionService
 from puresoul.main.ioc import WebIoc
 from puresoul.presentation.interactor_factory import MainInteractorFactory
 from puresoul.presentation.api.v1.main import create_main_router
+from puresoul.presentation.api.v1.exc_handlers.exception_handler import handle_exceptions
 
 
 def app_factory(
@@ -62,9 +66,11 @@ async def start_server(
 
     logger.info(f"Initialized Server with config: {config.host} : {config.port}")
 
-    logger.info(f"Checking health of the database connection")
+    logger.info(f"DB healthcheck")
 
     await uow.healthcheck()
+
+    logger.info(f"DB is healthy")
 
     app.dependency_overrides.update(
         {
@@ -123,10 +129,17 @@ async def main() -> None:
     ) -> JWTIdProvider:
         return JWTIdProvider(token_secret)(token)
 
-
+    async def root():
+        return FileResponse(
+            path='src/puresoul/main/root.html'
+        )
     app = app_factory(
         interactor_factory=ioc,
         id_provider=inject_token,
+    )
+    app.add_api_route(
+        '/',
+        endpoint=root,
     )
     app.add_api_route(
         '/internal/protected',
@@ -144,5 +157,6 @@ async def main() -> None:
             image_formats=frozenset({'image/png', 'image/jpeg'}),
         )
     )
+    app.add_exception_handler(DomainException, handle_exceptions)
     async with start_server(app, db_url) as server:
         await server.serve()
