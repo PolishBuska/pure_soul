@@ -11,7 +11,7 @@ from puresoul.domain.album import Album
 from puresoul.domain.playlist import Playlist
 from puresoul.domain.song import Song
 
-from .tables import GenreTable, PlaylistTable, TableSong, ArtistTable, AlbumModel
+from .tables import GenreTable, PlaylistTable, TableSong, ArtistTable, AlbumModel, albums_songs_association_table
 
 
 class SqlaMusicGateway(MusicGateway):
@@ -197,7 +197,8 @@ class SqlaMusicGateway(MusicGateway):
             genres=genres,
             name=album.album_name,
             description=album.album_description,
-            is_released=False
+            is_released=False,
+            author_id=album.author_id,
         )
         self.uow.add(new_album_model)
         await self.uow.flush()
@@ -232,3 +233,18 @@ class SqlaMusicGateway(MusicGateway):
     ) -> int:
         query = select(AlbumModel.author_id).where(AlbumModel.id == album_id)
         return await self.uow.scalar(query)
+
+    async def add_song_to_album(
+            self,
+            album: Album,
+            song_id: int
+    ):
+        stmt = update(albums_songs_association_table).where(
+            albums_songs_association_table.c.album_id == album.id
+        ).values(
+            song_id=song_id,
+            album_id=album.id
+        )
+        await self.uow.execute(stmt)
+
+

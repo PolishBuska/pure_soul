@@ -1,16 +1,22 @@
+from dataclasses import dataclass
+from typing import Tuple
+
 from puresoul.application.common.id_provider import IdProvider
 from puresoul.application.common.interactor import Interactor
 from puresoul.application.common.music_gateway import MusicGateway
+from puresoul.application.common.transaction_manager import TransactionManager
 from puresoul.application.common.user_gateway import UserGateway
-from .common.dto import AlbumDTO
-from .common.helpers import artists_exist
-from .common.transaction_manager import TransactionManager
-from ..domain.album import Album
-from ..domain.exceptions import NotAuthorizedException
-from ..domain.song import SongService
 
+from puresoul.domain.exceptions import NotAuthorizedException
+from puresoul.domain.album import Album
+from puresoul.domain.song import SongService
 
-class CreateAlbum(Interactor[AlbumDTO, Album]):
+@dataclass
+class AlbumSongIds:
+    album_id: int
+    song_id: int
+
+class InjectSong(Interactor[AlbumSongIds, Album]):
     def __init__(
             self,
             id_provider: IdProvider,
@@ -25,19 +31,16 @@ class CreateAlbum(Interactor[AlbumDTO, Album]):
         self.song_service = song_service
         self.transaction_manager = transaction_manager
 
-    async def __call__(self, dto: AlbumDTO) -> Album:
+    async def __call__(self, album_song_ids: AlbumSongIds) -> None:
         current_user = self.id_provider.get_current_user_id()
         if not current_user.can_access_premium_features():
             raise NotAuthorizedException(
-                "cannot access premium features",
+                "action not allowed",
             )
-        if not await artists_exist(
-                user_gateway=self.user_gateway,
-                artists=list(dto.artists),
-        ):
+        album = await self.music_gateway.get_album_by_id(album_song_ids.album_id)
+        if album.author_id != current_user.id:
             raise NotAuthorizedException(
-                'cannot access artists',
+                "action not allowed",
             )
-        album = await self.music_gateway.create_album(dto)
+        await self.music_gateway.inject_song(album, album_song_ids.song_id)
         await self.transaction_manager.commit()
-        return album

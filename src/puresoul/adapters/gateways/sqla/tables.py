@@ -150,10 +150,6 @@ class AlbumModel(Base):
         "GenreTable",
         secondary=albums_genres_association_table,
     )
-    songs: Mapped[List["TableSong"]] = relationship(
-        "TableSong",
-        secondary=albums_songs_association_table,
-    )
     def to_domain(self) -> Album:
         return Album(
             id=AlbumId(self.id),
@@ -161,7 +157,7 @@ class AlbumModel(Base):
             description=AlbumDescription(self.description),
             genres=[g.to_domain() for g in self.genres],
             artists=[ar.to_domain() for ar in self.artists],
-            songs=[s.to_domain() for s in self.songs] if self.songs else None,
+            songs=[s.to_domain() for s in self.songs],
             is_released=self.is_released,
             created_at=self.created_at,
             updated_at=self.updated_at,

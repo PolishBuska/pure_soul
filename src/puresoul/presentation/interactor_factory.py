@@ -104,3 +104,8 @@ class MainInteractorFactory(ABC):
     @asynccontextmanager
     async def publish_album(self, uow, id_provider: IdProvider):
         raise NotImplementedError()
+
+    @abstractmethod
+    @asynccontextmanager
+    async def inject_song(self, uow, id_provider: IdProvider):
+        raise NotImplementedError()

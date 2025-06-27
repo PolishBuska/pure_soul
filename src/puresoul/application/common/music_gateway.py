@@ -87,3 +87,6 @@ class MusicGateway(Protocol):
     @abstractmethod
     async def update_album(self, album: Album):
         raise NotImplementedError()
+    @abstractmethod
+    async def inject_song(self, album: Album, song_id: int):
+        raise NotImplementedError()

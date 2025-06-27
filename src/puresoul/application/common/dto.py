@@ -14,3 +14,4 @@ class AlbumDTO:
     album_description: str
     album_genres: List[int]
     artists: List[int]
+    author_id: int
