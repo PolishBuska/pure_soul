@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, List
 
 from puresoul.application.common.id_provider import IdProvider
 from puresoul.application.common.interactor import Interactor
@@ -7,16 +7,16 @@ from puresoul.application.common.music_gateway import MusicGateway
 from puresoul.application.common.transaction_manager import TransactionManager
 from puresoul.application.common.user_gateway import UserGateway
 
-from puresoul.domain.exceptions import NotAuthorizedException
+from puresoul.domain.exceptions import NotAuthorizedException, ForbiddenException
 from puresoul.domain.album import Album
 from puresoul.domain.song import SongService
 
 @dataclass
 class AlbumSongIds:
     album_id: int
-    song_id: int
+    song_ids: List[int]
 
-class InjectSong(Interactor[AlbumSongIds, Album]):
+class AddSongsToAlbum(Interactor[AlbumSongIds, Album]):
     def __init__(
             self,
             id_provider: IdProvider,
@@ -31,6 +31,7 @@ class InjectSong(Interactor[AlbumSongIds, Album]):
         self.song_service = song_service
         self.transaction_manager = transaction_manager
 
+
     async def __call__(self, album_song_ids: AlbumSongIds) -> None:
         current_user = self.id_provider.get_current_user_id()
         if not current_user.can_access_premium_features():
@@ -42,5 +43,13 @@ class InjectSong(Interactor[AlbumSongIds, Album]):
             raise NotAuthorizedException(
                 "action not allowed",
             )
-        await self.music_gateway.inject_song(album, album_song_ids.song_id)
+        songs = await self.music_gateway.get_songs_in(album_song_ids.song_ids)
+        if not any(s.can_add_to_album(current_user.id) for s in songs):
+            raise ForbiddenException(
+                "action not allowed, validate the input",
+            )
+        await self.music_gateway.add_songs_to_album(
+            album=album,
+            song_ids=album_song_ids.song_ids,
+        )
         await self.transaction_manager.commit()

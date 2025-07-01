@@ -1,18 +1,21 @@
-from typing import Annotated, List, Callable, Optional, FrozenSet
+from io import BytesIO
+from typing import Annotated, List, Callable, Optional, FrozenSet, Tuple
 
 from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException, Query, Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from starlette import status
+from starlette.responses import StreamingResponse
 
 from puresoul.application.common.dto import AlbumDTO
 from puresoul.application.common.id_provider import IdProvider
 from puresoul.application.common.transaction_manager import TransactionManager
 from puresoul.application.create_song import CreateSongDto, SongFiles
 from puresoul.application.get_feed import Feed
-from puresoul.application.inject_song import AlbumSongIds
+from puresoul.application.add_songs_to_album import AlbumSongIds
 from puresoul.domain.album import Album
 from puresoul.domain.genre import Genre
 from puresoul.domain.song import Song
-from puresoul.presentation.inmemory_file_converter import spooled_to_bytesio
+from puresoul.presentation.inmemory_file_converter import spooled_to_bytesio, convert_bytesio_to_file_response
 from puresoul.presentation.interactor_factory import MainInteractorFactory
 
 
@@ -149,6 +152,17 @@ def create_music_handler(
                     genres=params.genres,
                 )
             )
+
+    @api_router.patch('/album/{album_id:}')
+    async def publish_album(
+            album_id: int,
+            interactor_factory: Annotated[MainInteractorFactory, Depends()],
+            uow_factory: Annotated[TransactionManager, Depends()],
+            id_provider: Annotated[IdProvider, Depends(token_handler)],
+    ) -> None:
+        async with interactor_factory.publish_album(uow=uow_factory, id_provider=id_provider) as interactor:
+            return await interactor(album_id)
+
     async def create_album(
                            id_provider: Annotated[IdProvider, Depends(token_handler)],
                            interactor_factory: Annotated[MainInteractorFactory, Depends()],
@@ -166,11 +180,11 @@ def create_music_handler(
                 )
             )
             return res
-    async def inject_song(
+    async def add_songs_to_album(
             id_provider: Annotated[IdProvider, Depends(token_handler)],
             interactor_factory: Annotated[MainInteractorFactory, Depends()],
             uow_factory: Annotated[TransactionManager, Depends()],
-            song_id: int = Query(),
+            song_ids: List[int] = Query(),
             album_id: int = Path(),
     ):
         async with interactor_factory.inject_song(
@@ -180,10 +194,31 @@ def create_music_handler(
             res = await interactor(
                 AlbumSongIds(
                     album_id=album_id,
-                    song_id=song_id,
+                    song_id=song_ids,
                 )
             )
             return res
+
+    @api_router.get('/file')
+    async def get_file(
+            interactor_factory: Annotated[MainInteractorFactory, Depends()],
+            url: str = Query(),
+    ) -> StreamingResponse:
+        async with interactor_factory.get_file() as interactor:
+            """
+                file: Tuple[BytesIO, str] = await interactor(url)
+                    it returns the source of the file.
+                    and the file stream.
+                    Used by convert_bytesio_to_file_response(
+                        )
+                    to create proper content headers
+
+            """
+            file: Tuple[BytesIO, str] = await interactor(url)
+            return convert_bytesio_to_file_response(
+                file_source=file[1],
+                stream=file[0],
+            )
     
     api_router.add_api_route(
         "/genres",
@@ -212,7 +247,8 @@ def create_music_handler(
     )
     api_router.add_api_route(
         "/albums/{album_id}",
-        endpoint=inject_song,
+        endpoint=add_songs_to_album,
         methods=["POST"],
+        status_code=status.HTTP_200_OK
     )
     return api_router

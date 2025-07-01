@@ -2,16 +2,18 @@ import asyncio
 from typing import List, Set
 
 from sqlalchemy import select, insert, or_, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, noload
 
 from puresoul.application.common.music_gateway import MusicGateway
 from puresoul.application.common.dto import AlbumDTO
 from puresoul.domain.album import Album
+from puresoul.domain.exceptions import AlreadyExistsException
 from puresoul.domain.playlist import Playlist
 from puresoul.domain.song import Song
 
-from .tables import GenreTable, PlaylistTable, TableSong, ArtistTable, AlbumModel, albums_songs_association_table
+from .tables import GenreTable, PlaylistTable, TableSong, ArtistTable, AlbumModel
 
 
 class SqlaMusicGateway(MusicGateway):
@@ -140,7 +142,7 @@ class SqlaMusicGateway(MusicGateway):
         query = select(TableSong).options(
             selectinload(TableSong.genres),
             selectinload(TableSong.artists),
-        ).where(TableSong.id == song_id)
+        ).where(TableSong.id == song_id, TableSong.is_published == True)
         result = await self.uow.scalar(query)
         return result.to_domain()
 
@@ -167,7 +169,7 @@ class SqlaMusicGateway(MusicGateway):
 
         if artists:
             filters.append(TableSong.artists.any(ArtistTable.id.in_(artists)))
-
+        filters.append(TableSong.is_published == True)
         query = (
             select(TableSong)
             .filter(*filters)
@@ -183,31 +185,35 @@ class SqlaMusicGateway(MusicGateway):
         result = await self.uow.scalars(query)
         return [m.to_domain() for m in result]
     async def create_album(self, album: AlbumDTO) -> Album:
-        meta = await asyncio.gather(
-            self.fetch_artists(
-                artists=album.artists
-            ),
-            self.fetch_genres(
-                genres=album.album_genres,
+        try:
+            meta = await asyncio.gather(
+                self.fetch_artists(
+                    artists=album.artists
+                ),
+                self.fetch_genres(
+                    genres=album.album_genres,
+                )
             )
-        )
-        artists, genres = meta[0], meta[1]
-        new_album_model = AlbumModel(
-            artists=artists,
-            genres=genres,
-            name=album.album_name,
-            description=album.album_description,
-            is_released=False,
-            author_id=album.author_id,
-        )
-        self.uow.add(new_album_model)
-        await self.uow.flush()
-        return new_album_model.to_domain()
+            artists, genres = meta[0], meta[1]
+            new_album_model = AlbumModel(
+                artists=artists,
+                genres=genres,
+                name=album.album_name,
+                description=album.album_description,
+                is_released=False,
+                author_id=album.author_id,
+            )
+            self.uow.add(new_album_model)
+            await self.uow.flush()
+            return new_album_model.to_domain()
+        except IntegrityError:
+            raise AlreadyExistsException('album already exists')
 
     async def get_album_by_id(
             self,
             album_id: int,
     ) -> Album:
+        subquery = select(TableSong).where(TableSong.album_id == album_id).subquery()
         query = select(
             AlbumModel
         ).where(
@@ -215,8 +221,7 @@ class SqlaMusicGateway(MusicGateway):
         ).options(
             selectinload(AlbumModel.artists),
             selectinload(AlbumModel.genres),
-            selectinload(AlbumModel.songs)
-        )
+        ).select(subquery)
         orm_mo = await self.uow.scalar(query)
         return orm_mo.to_domain()
 
@@ -234,17 +239,26 @@ class SqlaMusicGateway(MusicGateway):
         query = select(AlbumModel.author_id).where(AlbumModel.id == album_id)
         return await self.uow.scalar(query)
 
-    async def add_song_to_album(
+    async def add_songs_to_album(
             self,
             album: Album,
-            song_id: int
+            song_ids: List[int]
     ):
-        stmt = update(albums_songs_association_table).where(
-            albums_songs_association_table.c.album_id == album.id
-        ).values(
-            song_id=song_id,
-            album_id=album.id
+        bulk = [
+            {"id": sid, "album_id": album.id}
+            for sid in song_ids
+        ]
+        await self.uow.execute(update(TableSong), bulk)
+
+    async def get_songs_in(
+            self,
+            song_ids: List[int],
+    ) -> List[Song]:
+        query = select(TableSong).where(
+            TableSong.id.in_(song_ids),
+        ).options(
+            noload(TableSong.genres),
+            noload(TableSong.artists)
         )
-        await self.uow.execute(stmt)
-
-
+        res = await self.uow.scalars(query)
+        return [s.to_domain() for s in res]

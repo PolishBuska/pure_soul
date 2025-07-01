@@ -28,6 +28,7 @@ class Song:
     original_song_filename: str
     original_cover_image_filename: str
     author_id: Optional[int]
+    is_published: bool
 
     def as_dict(self) -> dict:
         return {
@@ -43,8 +44,11 @@ class Song:
             "song_file_path": self.song_file_path,
             "original_song_filename": self.original_song_filename,
             "original_cover_image_filename": self.original_cover_image_filename,
-            "author_id": self.author_id
+            "author_id": self.author_id,
+            "is_published": self.is_published,
         }
+    def can_add_to_album(self, owner_id: int) -> bool:
+        return True if self.author_id == owner_id and not self.is_published else False
 
 class SongService:
     def create_song(
@@ -79,5 +83,6 @@ class SongService:
             song_file_path=song_file_path,
             original_song_filename=original_song_filename,
             original_cover_image_filename=original_cover_image_filename,
-            author_id=author_id
+            author_id=author_id,
+            is_published=False,
         )

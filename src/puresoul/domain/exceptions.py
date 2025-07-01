@@ -15,6 +15,10 @@ class NotAuthorizedException(DomainException):
     def __init__(self, message: str):
         super().__init__(message)
 
+class ForbiddenException(DomainException):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class NotAuthenticatedException(DomainException):
     def __init__(self, message: str):
         super().__init__(message)

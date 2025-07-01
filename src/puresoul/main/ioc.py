@@ -27,6 +27,7 @@ from puresoul.application.get_genres import GetGenres
 from puresoul.application.get_payment_types import GetPaymentTypes
 from puresoul.application.get_song import GetSong
 from puresoul.application.get_tiers import GetTiers
+from puresoul.application.add_songs_to_album import AddSongsToAlbum
 from puresoul.application.login_user import LoginUser
 from puresoul.application.download_presigned_url import DownloadPresignedUrl
 from puresoul.application.publish_album import PublishAlbum
@@ -212,6 +213,15 @@ class WebIoc(MainInteractorFactory):
             music_gateway=SqlaMusicGateway(uow),
             id_provider=id_provider,
             transaction_manager=uow
+        )
+    @asynccontextmanager
+    async def inject_song(self, uow, id_provider: IdProvider):
+        yield AddSongsToAlbum(
+            music_gateway=SqlaMusicGateway(uow),
+            id_provider=id_provider,
+            transaction_manager=uow,
+            user_gateway=SqlaUserGateway(uow),
+            song_service=self.song_service,
         )
 
     async def __call__(self) -> Self:

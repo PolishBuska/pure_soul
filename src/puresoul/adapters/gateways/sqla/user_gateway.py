@@ -51,6 +51,7 @@ class SqlaUserGateway(UserGateway):
     async def filter_artists(self, params: Dict[str, Any]) -> List[int]:
         where_clause = self._prepare_search_params(params=params, model=ArtistTable)
         query = select(ArtistTable).where(*where_clause)
+        print(query)
         res = await self.uow.scalars(query)
         return [m.id for m in res] if res else []
 

@@ -2,13 +2,13 @@ from decimal import Decimal
 from typing import List
 from datetime import datetime, timedelta
 
-from sqlalchemy import String
+from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy import Column
 from sqlalchemy import Table
 from sqlalchemy import ForeignKey
 from sqlalchemy import MetaData
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, join
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -76,12 +76,6 @@ playlist_genres_association_table = Table(
     Column("playlist_id", ForeignKey("playlist.id"), primary_key=True),
     Column("genre_id", ForeignKey("genres.id"), primary_key=True),
 )
-playlist_artists_association_table = Table(
-    "playlist_artists_association_table",
-    Base.metadata,
-    Column("playlist_id", ForeignKey("playlist.id"), primary_key=True),
-    Column("artist_id", ForeignKey("artists.id"), primary_key=True),
-)
 
 
 class PlaylistTable(Base):
@@ -95,16 +89,13 @@ class PlaylistTable(Base):
         "TableSong",
         secondary=playlist_songs_association_table,
         back_populates="playlists",
+        cascade='delete'
     )
     genres: Mapped[List["GenreTable"]] = relationship(
         "GenreTable",
         secondary=playlist_genres_association_table,
         back_populates="playlists",
-    )
-    artists: Mapped[List["ArtistTable"]] = relationship(
-        "ArtistTable",
-        secondary=playlist_artists_association_table,
-        back_populates="playlists",
+        cascade='delete'
     )
 
     def to_domain(self):
@@ -117,52 +108,15 @@ class PlaylistTable(Base):
 albums_artists_association_table = Table(
     "albums_artists_association_table",
     Base.metadata,
-    Column("album_id", ForeignKey("albums.id"), primary_key=True),
-    Column("artist_id", ForeignKey("artists.id"), primary_key=True),
+    Column("album_id", ForeignKey("albums.id", ondelete="CASCADE"), primary_key=True),
+    Column("artist_id", ForeignKey("artists.id", ondelete="CASCADE"), primary_key=True),
 )
 albums_genres_association_table = Table(
     "albums_genres_association_table",
     Base.metadata,
-    Column("album_id", ForeignKey("albums.id"), primary_key=True),
-    Column("genre_id", ForeignKey("genres.id"), primary_key=True),
+    Column("album_id", ForeignKey("albums.id", ondelete="CASCADE"), primary_key=True),
+    Column("genre_id", ForeignKey("genres.id", ondelete="CASCADE"), primary_key=True),
 )
-albums_songs_association_table = Table(
-    "albums_songs_association_table",
-    Base.metadata,
-    Column("album_id", ForeignKey("albums.id"), primary_key=True),
-    Column("song_id", ForeignKey("songs.id"), primary_key=True),
-)
-
-class AlbumModel(Base):
-    __tablename__ = "albums"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, nullable=False)
-    name: Mapped[str] = mapped_column(nullable=False)
-    description: Mapped[str] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    is_released: Mapped[bool] = mapped_column(nullable=False)
-    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    artists: Mapped[List["ArtistTable"]] = relationship(
-        "ArtistTable",
-        secondary=albums_artists_association_table,
-    )
-    genres: Mapped[List["GenreTable"]] = relationship(
-        "GenreTable",
-        secondary=albums_genres_association_table,
-    )
-    def to_domain(self) -> Album:
-        return Album(
-            id=AlbumId(self.id),
-            title=AlbumTitle(self.name),
-            description=AlbumDescription(self.description),
-            genres=[g.to_domain() for g in self.genres],
-            artists=[ar.to_domain() for ar in self.artists],
-            songs=[s.to_domain() for s in self.songs],
-            is_released=self.is_released,
-            created_at=self.created_at,
-            updated_at=self.updated_at,
-            author_id=self.author_id,
-        )
 
 songs_artists_association_table = Table(
     "songs_artists_association_table",
@@ -195,16 +149,19 @@ class GenreTable(Base):
         "ArtistTable",
         secondary=artists_genres_association_table,
         back_populates="genres",
+        cascade='delete'
     )
     songs: Mapped[List["TableSong"]] = relationship(
         "TableSong",
         secondary=songs_genres_association_table,
         back_populates="genres",
+        cascade='delete'
     )
     playlists: Mapped[List["Playlist"]] = relationship(
         "PlaylistTable",
         secondary=playlist_genres_association_table,
         back_populates="genres",
+        cascade='delete'
     )
 
     def to_domain(self) -> Genre:
@@ -225,18 +182,14 @@ class ArtistTable(Base):
         secondary=artists_genres_association_table,
         back_populates="artists",
         lazy='selectin',
+        cascade='delete'
     )
     songs: Mapped[List["TableSong"]] = relationship(
         "TableSong",
         secondary=songs_artists_association_table,
         back_populates="artists",
-        lazy='selectin'
-    )
-    playlists: Mapped[List["Playlist"]] = relationship(
-        "PlaylistTable",
-        secondary=playlist_artists_association_table,
-        back_populates="artists",
-        lazy="selectin"
+        lazy='selectin',
+        cascade='delete',
     )
 
     def to_domain(self):
@@ -262,25 +215,29 @@ class TableSong(Base):
     original_song_filename: Mapped[str] = mapped_column(nullable=False)
     original_cover_image_filename: Mapped[str] = mapped_column(nullable=True)
     author_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    is_published: Mapped[bool] = mapped_column(nullable=False, default=False)
     genres: Mapped[List["GenreTable"]] = relationship(
         "GenreTable",
         secondary=songs_genres_association_table,
         back_populates="songs",
-        lazy='selectin'
+        lazy='selectin',
+        cascade='delete',
     )
 
     artists: Mapped[List['ArtistTable']] = relationship(
         "ArtistTable",
         secondary=songs_artists_association_table,
         back_populates="songs",
-        lazy='selectin'
+        lazy='selectin',
+        cascade="delete",
     )
 
     playlists: Mapped["PlaylistTable"] = relationship(
         "PlaylistTable",
         secondary=playlist_songs_association_table,
         back_populates="songs",
-        lazy='selectin'
+        lazy='selectin',
+        cascade="delete",
     )
 
     def to_domain(self):
@@ -298,6 +255,41 @@ class TableSong(Base):
             artists=[artist.to_domain() for artist in self.artists],
             genres=[genre.to_domain() for genre in self.genres],
             author_id=UserId(self.author_id),
+            is_published=self.is_published,
+        )
+class AlbumModel(Base):
+    __tablename__ = "albums"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    is_released: Mapped[bool] = mapped_column(nullable=False)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    artists: Mapped[List["ArtistTable"]] = relationship(
+        "ArtistTable",
+        secondary=albums_artists_association_table,
+        cascade='delete'
+    )
+    genres: Mapped[List["GenreTable"]] = relationship(
+        "GenreTable",
+        secondary=albums_genres_association_table,
+        cascade='delete'
+    )
+    __table_args__ = (UniqueConstraint('name', 'author_id', name='_name_author_id'),
+                      )
+    def to_domain(self) -> Album:
+        return Album(
+            id=AlbumId(self.id),
+            title=AlbumTitle(self.name),
+            description=AlbumDescription(self.description),
+            genres=[g.to_domain() for g in self.genres],
+            artists=[ar.to_domain() for ar in self.artists],
+            songs=[],
+            is_released=self.is_released,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            author_id=self.author_id,
         )
 
 class TierTable(Base):
@@ -319,7 +311,6 @@ class TierTable(Base):
 class SubscriptionTable(Base):
     __tablename__ = 'subscriptions'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     started_at: Mapped[datetime] = mapped_column(nullable=False)
     ended_at: Mapped[datetime] = mapped_column(nullable=False)
     tier_id: Mapped[int] = mapped_column(ForeignKey('tiers.id'))
@@ -332,9 +323,9 @@ class SubscriptionTable(Base):
             started_at=self.started_at,
             ended_at=self.ended_at,
             tier_id=self.tier_id,
-            user_id=self.user_id,
             payment_id=self.payment_id,
             payment_method=self.payment_method,
+            user_id=None
         )
 
 class PaymentChoices(Base):
