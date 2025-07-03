@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from puresoul.application.album import AlbumFeed, AlbumSongs
 from puresoul.application.create_album import CreateAlbum
 from src.puresoul.application.add_subscription import AddSubscription
 from src.puresoul.application.check_subscription import CheckSubscription
@@ -109,3 +110,11 @@ class MainInteractorFactory(ABC):
     @asynccontextmanager
     async def inject_song(self, uow, id_provider: IdProvider):
         raise NotImplementedError()
+
+    @asynccontextmanager
+    async def search_albums(self, uow, id_provider: IdProvider) -> AlbumFeed:
+        raise NotImplementedError()
+    @asynccontextmanager
+    async def get_album_songs(self, uow, id_provider: IdProvider) -> AlbumSongs:
+        raise NotImplementedError()
+

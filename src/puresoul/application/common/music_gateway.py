@@ -1,6 +1,7 @@
 from typing import Protocol, List
 from abc import abstractmethod
 
+from puresoul.application.common.album_dto import AlbumsSearchParams
 from puresoul.application.common.dto import AlbumDTO
 from src.puresoul.domain.album import Album
 from src.puresoul.domain.genre import Genre
@@ -105,4 +106,14 @@ class MusicGateway(Protocol):
             self,
             song_ids: List[int],
     ):
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def search_albums(
+            self, dto: AlbumsSearchParams
+    ) -> List[Album]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def get_songs_by_album_id(self, album_id: int) -> List[Song]:
         raise NotImplementedError()

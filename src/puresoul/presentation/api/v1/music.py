@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from starlette import status
 from starlette.responses import StreamingResponse
 
+from puresoul.application.common.album_dto import AlbumsSearchParams
 from puresoul.application.common.dto import AlbumDTO
 from puresoul.application.common.id_provider import IdProvider
 from puresoul.application.common.transaction_manager import TransactionManager
@@ -28,6 +29,18 @@ def create_music_handler(
         prefix="/ams",
     )
 
+    class Search(BaseModel):
+        page: int = Field(default=1, gt=0, lt=100000000000)
+        page_size: int = Field(default=15, gt=0, le=15)
+        search: str = Field(
+            min_length=1,
+            max_length=100,
+            pattern=r'^[a-zA-Z]+$'
+        )
+        artists: Optional[List[int]] = Field(None, min_length=1, max_length=100)
+        genres: Optional[List[int]] = Field(None, min_length=1, max_length=100)
+        newest: Optional[bool] = Field(None, min_length=1, max_length=100)
+
     class AlbumModel(BaseModel):
         album_name: str = Field(min_length=1, max_length=100)
         album_description: str = Field(min_length=1, max_length=350)
@@ -43,17 +56,6 @@ def create_music_handler(
             if any(isinstance(v, str) for v in v):
                 raise ValueError("album_genres should be a list of integers")
             return v
-
-    class SongSearchQuery(BaseModel):
-        page: int = Field(default=1, gt=0, lt=100000000000)
-        page_size: int = Field(default=15, gt=0, le=15)
-        search: str = Field(
-            min_length=1,
-            max_length=100,
-            pattern=r'^[a-zA-Z]+$'
-        )
-        artists: Optional[List[int]] = Field(None, min_length=1, max_length=100)
-        genres: Optional[List[int]] = Field(None, min_length=1, max_length=100)
 
     class SongFormData(BaseModel):
         name: str
@@ -123,6 +125,39 @@ def create_music_handler(
                     )
                 )
 
+    @api_router.get("/albums")
+    async def search_albums(
+            id_provider: Annotated[IdProvider, Depends(token_handler)],
+            interactor_factory: Annotated[MainInteractorFactory, Depends()],
+            uow_factory: Annotated[TransactionManager, Depends()],
+            params: Search = Query(),
+    ) -> List[Album]:
+        async with interactor_factory.search_albums(id_provider=id_provider, uow=uow_factory) as interactor:
+            res = await interactor(
+                AlbumsSearchParams(
+                    page=params.page,
+                    page_size=params.page_size,
+                    name=params.search,
+                    genres=params.genres,
+                    artists=params.artists,
+                    newest=params.newest,
+                )
+            )
+            return res
+
+    @api_router.get("/albums/{album_id}/songs")
+    async def get_album_songs(
+            id_provider: Annotated[IdProvider, Depends(token_handler)],
+            interactor_factory: Annotated[MainInteractorFactory, Depends()],
+            uow_factory: Annotated[TransactionManager, Depends()],
+            album_id: int = Path(gt=0),
+    ) -> List[Song]:
+        async with interactor_factory.get_album_songs(id_provider=id_provider, uow=uow_factory) as interactor:
+            res = await interactor(
+                album_id=album_id,
+            )
+            return res
+
     async def get_song(
             id_provider: Annotated[IdProvider, Depends(token_handler)],
             interactor_factory: Annotated[MainInteractorFactory, Depends()],
@@ -137,7 +172,7 @@ def create_music_handler(
             interactor_factory: Annotated[MainInteractorFactory, Depends()],
             uow_factory: Annotated[TransactionManager, Depends()],
             id_provider: Annotated[IdProvider, Depends(token_handler)],
-            params: SongSearchQuery = Query()
+            params: Search = Query()
     ) -> List[Song]:
         async with interactor_factory.get_feed(
                 uow=uow_factory,
@@ -194,7 +229,7 @@ def create_music_handler(
             res = await interactor(
                 AlbumSongIds(
                     album_id=album_id,
-                    song_id=song_ids,
+                    song_ids=song_ids,
                 )
             )
             return res

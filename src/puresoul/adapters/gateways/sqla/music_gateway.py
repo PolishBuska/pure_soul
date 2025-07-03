@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, noload
 
+from puresoul.application.album import AlbumsSearchParams
 from puresoul.application.common.music_gateway import MusicGateway
 from puresoul.application.common.dto import AlbumDTO
 from puresoul.domain.album import Album
@@ -262,3 +263,30 @@ class SqlaMusicGateway(MusicGateway):
         )
         res = await self.uow.scalars(query)
         return [s.to_domain() for s in res]
+
+    async def search_albums(self, dto: AlbumsSearchParams) -> List[Album]:
+
+        search_template = f"%{dto.name}%"
+
+        query = select(AlbumModel).where(
+            AlbumModel.name.ilike(search_template),
+        ).options(
+            selectinload(AlbumModel.genres),
+            selectinload(AlbumModel.artists)
+        ).filter(
+            AlbumModel.artists.any(ArtistTable.id.in_(dto.artists)),
+            AlbumModel.genres.any(GenreTable.id.in_(dto.genres))
+        ).order_by(AlbumModel.created_at.desc() if dto.newest else AlbumModel.created_at.asc())
+        res = await self.uow.scalars(query)
+        return [am.to_domain() for am in res]
+
+    async def get_songs_by_album_id(self, album_id: int) -> List[Song]:
+        query = select(TableSong).where(
+            TableSong.album_id == album_id,
+        ).options(
+            selectinload(TableSong.genres),
+            selectinload(TableSong.artists),
+            noload(TableSong.playlists)
+        )
+        res = await self.uow.scalars(query)
+        return [sng.to_domain() for sng in res]

@@ -8,6 +8,7 @@ class DTO:
     page_size: Optional[int]
 
 
+
 @dataclass
 class AlbumDTO:
     album_name: str

@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import Self, Any
+from typing import Self, Any, Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +31,7 @@ from puresoul.application.add_songs_to_album import AddSongsToAlbum
 from puresoul.application.login_user import LoginUser
 from puresoul.application.download_presigned_url import DownloadPresignedUrl
 from puresoul.application.publish_album import PublishAlbum
+from puresoul.application.album import AlbumFeed, AlbumSongs
 from puresoul.domain.artist import ArtistService
 from puresoul.domain.iam.user import UserService
 from puresoul.domain.song import SongService
@@ -221,7 +222,22 @@ class WebIoc(MainInteractorFactory):
             id_provider=id_provider,
             transaction_manager=uow,
             user_gateway=SqlaUserGateway(uow),
-            song_service=self.song_service,
+            song_service=self.song_service
+        )
+
+    @asynccontextmanager
+    async def search_albums(self, uow, id_provider: IdProvider) -> AlbumFeed:
+        yield AlbumFeed(
+            music_gateway=SqlaMusicGateway(uow),
+            id_provider=id_provider,
+            transaction_manager=uow
+        )
+
+    @asynccontextmanager
+    async def get_album_songs(self, uow, id_provider: IdProvider) -> AlbumSongs:
+        yield AlbumSongs(
+            music_gateway=SqlaMusicGateway(uow),
+            id_provider=id_provider,
         )
 
     async def __call__(self) -> Self:
