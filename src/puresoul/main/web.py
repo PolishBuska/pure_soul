@@ -86,12 +86,13 @@ async def start_server(
 async def protected(request: Request, id_provider: Annotated[IdProvider, Depends()]):
     return id_provider.get_current_user_id()
 
-async def main() -> None:
-    db_url = 'postgresql+asyncpg://admin:admin123@localhost:5432/pure_soul'
-    token_secret = 'secret'
-    s3_uri = 'http://127.0.0.1:9000'
-    s3_access_key_id = 'mRa7SfDQPxvAr7OX1loRaAyfHf2JX4PC9iqhBUU8'
-    s3_secret_key = 'cPXy2dJM4im3iRjApIWw'
+async def main(
+        db_url: str,
+        token_secret: str,
+        s3_uri: str,
+        s3_access_key_id: str,
+        s3_secret_key: str,
+) -> None:
     ioc = WebIoc(
         user_service=UserService(),
         password_hasher=BcryptPasswordHasher(),
