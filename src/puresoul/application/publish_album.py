@@ -3,8 +3,7 @@ from .common.interactor import Interactor
 from .common.music_gateway import MusicGateway
 from puresoul.domain.exceptions import (
     NotAuthorizedException,
-    TooFewItemsException,
-    AlreadyPublic, NotFound,
+    NotFound,
 
 )
 from .common.transaction_manager import TransactionManager
