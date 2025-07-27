@@ -4,7 +4,8 @@ from .common.music_gateway import MusicGateway
 from puresoul.domain.exceptions import (
     NotAuthorizedException,
     TooFewItemsException,
-    AlreadyPublic
+    AlreadyPublic, NotFound,
+
 )
 from .common.transaction_manager import TransactionManager
 
@@ -26,18 +27,12 @@ class PublishAlbum(Interactor[int, None]):
                 "cannot access this feature"
             )
         album = await self.music_gateway.get_album_by_id(album_id)
-        if album.author_id != current_user.id:
-            raise NotAuthorizedException(
-                "cannot access this feature"
+        if album is None:
+            raise NotFound(
+                f"could not find album with id {album_id}"
             )
-        if len(album.songs) <= 3:
-            raise TooFewItemsException(
-                "too few songs to publish, please populate the album"
-            )
-        if album.is_released:
-            raise AlreadyPublic(
-                "this album is already released"
-            )
-        album.is_released = True
+        album.publish_album(
+            cu=current_user
+        )
         await self.music_gateway.update_album(album)
         await self.transaction_manager.commit()
